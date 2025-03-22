@@ -2,6 +2,47 @@
 
 <head>
     <title>My first website</title>
+    <link href="styles.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #e0e0e0;
+            font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+            margin-left: 60px;
+        }
+
+        p {
+            color: green;
+        }
+
+        h1 {
+            color: #9C27B0;
+        }
+
+        .padding-container {
+            width: 200px;
+            background-color: cadetblue;
+            border: 6px solid black;
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 10px;
+            box-shadow: 10px 10px 2px 6px lightgray;
+
+            
+            margin: 20px;
+
+            margin: 10px 20px 30px 40px;
+            margin-top: 10px;
+            margin-bottom: 20px;
+            margin-right: 30px;
+            margin-left: 40px;
+
+            margin: 10px 20px;
+
+            margin: 10px 20px 30px;
+
+            /* margin: top right bottom left; */
+        }
+    </style>
 </head>
 
 <body>
@@ -15,7 +56,7 @@
     <h6>This is a subheading</h6>
 
     <!-- html paragraph -->
-    <p>This is a paragraph.
+    <p style="color: blue;">This is a paragraph.
         It contains multiple lines and
         text. This is a paragraph.
         It contains multiple lines and
@@ -39,80 +80,94 @@
         It contains multiple lines and
         text.</p>
 
-        <!-- <html break line -->
+    <!-- <html break line -->
 
-        <br/>
-        <br/>
-        <br/>
-        <br/>
+    <br />
+    <br />
+    <br />
+    <br />
 
-        <p>This is a paragraph.
-            It contains multiple lines and
-            text. This is a paragraph.
-            It contains multiple lines and
-            text. This is a paragraph.
-            It contains multiple lines and
-            text. This is a paragraph.
-            It contains multiple lines and
-            text. This is a paragraph.
-            It contains multiple lines and
-            text.</p>
+    <p>This is a paragraph.
+        It contains multiple lines and
+        text. This is a paragraph.
+        It contains multiple lines and
+        text. This is a paragraph.
+        It contains multiple lines and
+        text. This is a paragraph.
+        It contains multiple lines and
+        text. This is a paragraph.
+        It contains multiple lines and
+        text.</p>
 
-        <!-- html unordered list -->
-         <ul>
-             <li>Item 1</li>
-             <li>Item 2</li>
-             <li>Item 3</li>
-             <li>Item 4</li>
-             <li>Item 5</li>
-         </ul>
+    <!-- html unordered list -->
+    <ul>
+        <li>Item 1</li>
+        <li>Item 2</li>
+        <li>Item 3</li>
+        <li>Item 4</li>
+        <li>Item 5</li>
+    </ul>
 
-         <!-- html ordered list -->
-          <!-- ctrl + / for uncomment/comment-->
-         <ol>
-             <li>Item 1</li>
-             <li>Item 2</li>
-             <!-- <li>Item 3</li>
+    <!-- html ordered list -->
+    <!-- ctrl + / for uncomment/comment-->
+    <ol>
+        <li>Item 1</li>
+        <li>Item 2</li>
+        <!-- <li>Item 3</li>
              <li>Item 4</li>  -->
-             <li>Item 5</li>
-         </ol>
+        <li>Item 5</li>
+    </ol>
 
-         <!-- html link -->
-         <a href="https://www.google.com">This is a link</a>
-         <br/>
+    <!-- html link -->
+    <a href="https://www.google.com" target="_blank">This is a link</a>
+    <br />
 
-         <!-- html horzontal line -->
-         <hr/>
+    <!-- html horzontal line -->
+    <hr />
 
-         <!-- html image -->
-         <img src="a.jpeg" width="200" 
-         alt="This is an image of screen"/>
+    <!-- html image -->
+    <img src="a.jpeg" width="200" alt="This is an image of screen" />
 
-         <!-- html table -->
+    <!-- html table -->
 
-         <table>
-            <tr>
-                <th>Name</th>
-                <th>Age</th>
-                <th>City</th>
-            </tr>
-            <tr>
-                <td>John</td>
-                <td>30</td>
-                <td>New York</td>
-            </tr>
-            <tr>
-                <td>Jane</td>
-                <td>25</td>
-                <td>London</td>
-            </tr>
-         </table>
+    <table>
+        <tr>
+            <th>Name</th>
+            <th>Age</th>
+            <th>City</th>
+        </tr>
+        <tr>
+            <td>John</td>
+            <td>30</td>
+            <td>New York</td>
+        </tr>
+        <tr>
+            <td>Jane</td>
+            <td>25</td>
+            <td>London</td>
+        </tr>
+    </table>
 
-         <br/>
-         <br/>
-         <br/>
-         <br/>
- 
+    <div class="padding-container">
+        Lorem ipsum dolor sit amet consectetur adipisicing elit. Dicta itaque nam corrupti autem dolorem quaerat sint
+        quos non. Voluptatum atque odio delectus architecto, quia alias dicta sunt officia consequuntur libero?
+    </div>
+
+    <div class="padding-container">
+        Lorem ipsum dolor sit amet consectetur adipisicing elit. Dicta itaque nam corrupti autem dolorem quaerat sint
+        quos non. Voluptatum atque odio delectus architecto, quia alias dicta sunt officia consequuntur libero?
+    </div>
+
+    <div class="padding-container">
+        Lorem ipsum dolor sit amet consectetur adipisicing elit. Dicta itaque nam corrupti autem dolorem quaerat sint
+        quos non. Voluptatum atque odio delectus architecto, quia alias dicta sunt officia consequuntur libero?
+    </div>
+
+    <br />
+    <br />
+    <br />
+    <br />
+
 </body>
 
 </html>
