@@ -1,74 +1,127 @@
-import { TestBed } from '@angular/core/testing';
-import { Observable, of, throwError } from 'rxjs';
-import { ConfigApiService } from './config-api.service';
-import { AppBaseApiService } from './app-base-api.service';
-import { BaseConfigAPIService, HostingEnvironmentService } from '@missionaccelerator/common/service';
-import { Platform } from '@customTypes/platform.interface';
-
-describe('ConfigApiService', () => {
-    let service: ConfigApiService;
-    let mockAppBaseApiService: jest.Mocked<AppBaseApiService>;
-    let mockHostingEnvironmentService: jest.Mocked<HostingEnvironmentService>;
-
-    const mockPlatforms: Platform[] = [
-        {
-            id: '1',
-            name: 'Platform 1',
-            description: 'Test Platform 1'
-        } as Platform,
-        {
-            id: '2',
-            name: 'Platform 2',
-            description: 'Test Platform 2'
-        } as Platform
-    ];
-
-    beforeEach(() => {
-        const appBaseApiServiceMock = {
-            get: jest.fn(),
-            post: jest.fn(),
-            put: jest.fn(),
-            delete: jest.fn(),
-            patch: jest.fn()
-        } as jest.Mocked<AppBaseApiService>;
-
-        const hostingEnvironmentServiceMock = {
-            getCurrentEnvironment: jest.fn(),
-            getEnvironmentConfig: jest.fn()
-        } as jest.Mocked<HostingEnvironmentService>;
-
-        TestBed.configureTestingModule({
-            providers: [
-                ConfigApiService,
-                { provide: AppBaseApiService, useValue: appBaseApiServiceMock },
-                { provide: HostingEnvironmentService, useValue: hostingEnvironmentServiceMock }
-            ]
+ describe('Constructor', () => {
+        it('should initialize with required dependencies', () => {
+            expect(service).toBeDefined();
+            expect(mockAppBaseApiService).toBeDefined();
+            expect(mockHostingEnvironmentService).toBeDefined();
         });
 
-        service = TestBed.inject(ConfigApiService);
-        mockAppBaseApiService = TestBed.inject(AppBaseApiService) as jest.Mocked<AppBaseApiService>;
-        mockHostingEnvironmentService = TestBed.inject(HostingEnvironmentService) as jest.Mocked<HostingEnvironmentService>;
-    });
-
-    afterEach(() => {
-        jest.clearAllMocks();
-    });
-
-    describe('Service Initialization', () => {
-        it('should be created', () => {
-            expect(service).toBeTruthy();
-        });
-
-        it('should be an instance of BaseConfigAPIService', () => {
+        it('should call super constructor with correct parameters', () => {
             expect(service instanceof BaseConfigAPIService).toBeTruthy();
         });
+    });
 
-        it('should be provided in root', () => {
-            expect(service).toBeDefined();
+    describe('getPlatformConfig()', () => {
+        it('should be defined', () => {
+            expect(service.getPlatformConfig).toBeDefined();
         });
 
-        it('should have configPath property set correctly', () => {
-            const configPath = (service as any).configPath;
-            expect(configPath).toBe('config/');
+        it('should return an Observable', () => {
+            mockAppBaseApiService.get.mockReturnValue(of(mockPlatforms));
+            
+            const result = service.getPlatformConfig();
+            
+            expect(result instanceof Observable).toBeTruthy();
+        });
+
+        it('should call baseAPIServices.get with correct URL', () => {
+            mockAppBaseApiService.get.mockReturnValue(of(mockPlatforms));
+            
+            service.getPlatformConfig();
+            
+            expect(mockAppBaseApiService.get).toHaveBeenCalledWith('config/platforms');
+        });
+
+        it('should call baseAPIServices.get exactly once', () => {
+            mockAppBaseApiService.get.mockReturnValue(of(mockPlatforms));
+            
+            service.getPlatformConfig();
+            
+            expect(mockAppBaseApiService.get).toHaveBeenCalledTimes(1);
+        });
+
+        it('should return Platform array on successful API call', (done) => {
+            mockAppBaseApiService.get.mockReturnValue(of(mockPlatforms));
+            
+            service.getPlatformConfig().subscribe(result => {
+                expect(result).toEqual(mockPlatforms);
+                expect(Array.isArray(result)).toBeTruthy();
+                expect(result.length).toBe(2);
+                done();
+            });
+        });
+
+        it('should return empty array when API returns empty response', (done) => {
+            const emptyResponse: Platform[] = [];
+            mockAppBaseApiService.get.mockReturnValue(of(emptyResponse));
+            
+            service.getPlatformConfig().subscribe(result => {
+                expect(result).toEqual([]);
+                expect(Array.isArray(result)).toBeTruthy();
+                expect(result.length).toBe(0);
+                done();
+            });
+        });
+
+        it('should handle API error', (done) => {
+            const errorResponse = new Error('API Error');
+            mockAppBaseApiService.get.mockReturnValue(throwError(() => errorResponse));
+            
+            service.getPlatformConfig().subscribe({
+                next: () => {
+                    fail('Should not emit next value on error');
+                },
+                error: (error) => {
+                    expect(error).toBe(errorResponse);
+                    done();
+                }
+            });
+        });
+
+        it('should pass through HTTP error status', (done) => {
+            const httpError = {
+                status: 404,
+                message: 'Not Found',
+                error: 'Platforms not found'
+            };
+            mockAppBaseApiService.get.mockReturnValue(throwError(() => httpError));
+            
+            service.getPlatformConfig().subscribe({
+                next: () => {
+                    fail('Should not emit next value on error');
+                },
+                error: (error) => {
+                    expect(error.status).toBe(404);
+                    expect(error.message).toBe('Not Found');
+                    done();
+                }
+            });
+        });
+
+        it('should handle network error', (done) => {
+            const networkError = new Error('Network Error');
+            mockAppBaseApiService.get.mockReturnValue(throwError(() => networkError));
+            
+            service.getPlatformConfig().subscribe({
+                next: () => {
+                    fail('Should not emit next value on error');
+                },
+                error: (error) => {
+                    expect(error.message).toBe('Network Error');
+                    done();
+                }
+            });
+        });
+
+        it('should return Observable that completes', (done) => {
+            mockAppBaseApiService.get.mockReturnValue(of(mockPlatforms));
+            
+            service.getPlatformConfig().subscribe({
+                next: (result) => {
+                    expect(result).toEqual(mockPlatforms);
+                },
+                complete: () => {
+                    done();
+                }
+            });
         });
     });
