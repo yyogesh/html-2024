@@ -1,210 +1,74 @@
-import { environment } from './environment.local';
-import { 
-    API, 
-    ApiGatewayMode, 
-    CloudEnvironment, 
-    PROXY_PATH, 
-    ValidAuthFlow 
-} from '@missionaccelerator/common/model';
+import { TestBed } from '@angular/core/testing';
+import { Observable, of, throwError } from 'rxjs';
+import { ConfigApiService } from './config-api.service';
+import { AppBaseApiService } from './app-base-api.service';
+import { BaseConfigAPIService, HostingEnvironmentService } from '@missionaccelerator/common/service';
+import { Platform } from '@customTypes/platform.interface';
 
-describe('Environment Local Configuration', () => {
-    it('should be defined', () => {
-        expect(environment).toBeDefined();
+describe('ConfigApiService', () => {
+    let service: ConfigApiService;
+    let mockAppBaseApiService: jest.Mocked<AppBaseApiService>;
+    let mockHostingEnvironmentService: jest.Mocked<HostingEnvironmentService>;
+
+    const mockPlatforms: Platform[] = [
+        {
+            id: '1',
+            name: 'Platform 1',
+            description: 'Test Platform 1'
+        } as Platform,
+        {
+            id: '2',
+            name: 'Platform 2',
+            description: 'Test Platform 2'
+        } as Platform
+    ];
+
+    beforeEach(() => {
+        const appBaseApiServiceMock = {
+            get: jest.fn(),
+            post: jest.fn(),
+            put: jest.fn(),
+            delete: jest.fn(),
+            patch: jest.fn()
+        } as jest.Mocked<AppBaseApiService>;
+
+        const hostingEnvironmentServiceMock = {
+            getCurrentEnvironment: jest.fn(),
+            getEnvironmentConfig: jest.fn()
+        } as jest.Mocked<HostingEnvironmentService>;
+
+        TestBed.configureTestingModule({
+            providers: [
+                ConfigApiService,
+                { provide: AppBaseApiService, useValue: appBaseApiServiceMock },
+                { provide: HostingEnvironmentService, useValue: hostingEnvironmentServiceMock }
+            ]
+        });
+
+        service = TestBed.inject(ConfigApiService);
+        mockAppBaseApiService = TestBed.inject(AppBaseApiService) as jest.Mocked<AppBaseApiService>;
+        mockHostingEnvironmentService = TestBed.inject(HostingEnvironmentService) as jest.Mocked<HostingEnvironmentService>;
     });
 
-    describe('Basic Configuration', () => {
-        it('should have production set to false', () => {
-            expect(environment.production).toBe(false);
-        });
-
-        it('should have correct title', () => {
-            expect(environment.title).toBe('Induction Planner');
-        });
-
-        it('should have matomo tracking id set', () => {
-            expect(environment.matomoTrackingId).toBe('21');
-        });
+    afterEach(() => {
+        jest.clearAllMocks();
     });
 
-    describe('Routing Configuration', () => {
-        it('should have routing object defined', () => {
-            expect(environment.routing).toBeDefined();
-            expect(typeof environment.routing).toBe('object');
+    describe('Service Initialization', () => {
+        it('should be created', () => {
+            expect(service).toBeTruthy();
         });
 
-        it('should have correct API configuration', () => {
-            expect(environment.routing.api).toBe(API.DEFAULT_API_PREFIX);
+        it('should be an instance of BaseConfigAPIService', () => {
+            expect(service instanceof BaseConfigAPIService).toBeTruthy();
         });
 
-        it('should have correct proxy path', () => {
-            expect(environment.routing.proxyPath).toBe(PROXY_PATH.INDUCTION_PLANNER);
+        it('should be provided in root', () => {
+            expect(service).toBeDefined();
         });
 
-        it('should have workstation BPN test disabled', () => {
-            expect(environment.routing.isWorkstationBpnTest).toBe(false);
-        });
-
-        it('should have correct API gateway mode', () => {
-            expect(environment.routing.apiGatewayMode).toBe(ApiGatewayMode.CLOUD_TAS_USA);
-        });
-
-        it('should have correct cloud environment', () => {
-            expect(environment.routing.cloudEnvironment).toBe(CloudEnvironment.PREPROD);
-        });
-
-        it('should have local routes enabled', () => {
-            expect(environment.routing.localRoutesEnabled).toBe(true);
-        });
-
-        describe('Local Routes', () => {
-            it('should have local routes object defined', () => {
-                expect(environment.routing.localRoutes).toBeDefined();
-                expect(typeof environment.routing.localRoutes).toBe('object');
-            });
-
-            it('should have induction planner route configured', () => {
-                const inductionPlannerRoute = environment.routing.localRoutes[PROXY_PATH.INDUCTION_PLANNER];
-                expect(inductionPlannerRoute).toBeDefined();
-                expect(inductionPlannerRoute).toBe('https://missionaccelerator-test.web.boeing.com/api-gateway/induction-planner');
-            });
-
-            it('should have static assets route configured', () => {
-                const staticAssetsRoute = environment.routing.localRoutes[PROXY_PATH.STATIC_ASSETS];
-                expect(staticAssetsRoute).toBeDefined();
-                expect(staticAssetsRoute).toBe('https://missionaccelerator-test.web.boeing.com/api-gateway/static-assets');
-            });
-
-            it('should have valid URL format for induction planner route', () => {
-                const inductionPlannerRoute = environment.routing.localRoutes[PROXY_PATH.INDUCTION_PLANNER];
-                expect(() => new URL(inductionPlannerRoute)).not.toThrow();
-            });
-
-            it('should have valid URL format for static assets route', () => {
-                const staticAssetsRoute = environment.routing.localRoutes[PROXY_PATH.STATIC_ASSETS];
-                expect(() => new URL(staticAssetsRoute)).not.toThrow();
-            });
+        it('should have configPath property set correctly', () => {
+            const configPath = (service as any).configPath;
+            expect(configPath).toBe('config/');
         });
     });
-
-    describe('SSO Configuration', () => {
-        it('should have SSO object defined', () => {
-            expect(environment.sso).toBeDefined();
-            expect(typeof environment.sso).toBe('object');
-        });
-
-        it('should have correct client ID', () => {
-            expect(environment.sso.clientId).toBe('induction-planner-ui');
-        });
-
-        it('should have valid auth flows configured', () => {
-            expect(environment.sso.validAuthFlows).toBeDefined();
-            expect(Array.isArray(environment.sso.validAuthFlows)).toBe(true);
-            expect(environment.sso.validAuthFlows).toHaveLength(2);
-        });
-
-        it('should include BPN_HEADER auth flow', () => {
-            expect(environment.sso.validAuthFlows).toContain(ValidAuthFlow.BPN_HEADER);
-        });
-
-        it('should include ACCESS_TOKEN auth flow', () => {
-            expect(environment.sso.validAuthFlows).toContain(ValidAuthFlow.ACCESS_TOKEN);
-        });
-
-        it('should have keycloak login skipped', () => {
-            expect(environment.sso.skipKeycloakLogin).toBe(true);
-        });
-
-        it('should have token refresh enabled', () => {
-            expect(environment.sso.disableTokenRefresh).toBe(false);
-        });
-    });
-
-    describe('Environment Structure Validation', () => {
-        it('should have all required top-level properties', () => {
-            const requiredProperties = ['production', 'title', 'routing', 'matomoTrackingId', 'sso'];
-            requiredProperties.forEach(prop => {
-                expect(environment).toHaveProperty(prop);
-            });
-        });
-
-        it('should have all required routing properties', () => {
-            const requiredRoutingProps = [
-                'api', 
-                'proxyPath', 
-                'isWorkstationBpnTest', 
-                'apiGatewayMode', 
-                'cloudEnvironment', 
-                'localRoutesEnabled', 
-                'localRoutes'
-            ];
-            requiredRoutingProps.forEach(prop => {
-                expect(environment.routing).toHaveProperty(prop);
-            });
-        });
-
-        it('should have all required SSO properties', () => {
-            const requiredSsoProps = [
-                'clientId', 
-                'validAuthFlows', 
-                'skipKeycloakLogin', 
-                'disableTokenRefresh'
-            ];
-            requiredSsoProps.forEach(prop => {
-                expect(environment.sso).toHaveProperty(prop);
-            });
-        });
-    });
-
-    describe('Type Validation', () => {
-        it('should have correct types for primitive values', () => {
-            expect(typeof environment.production).toBe('boolean');
-            expect(typeof environment.title).toBe('string');
-            expect(typeof environment.matomoTrackingId).toBe('string');
-        });
-
-        it('should have correct types for routing values', () => {
-            expect(typeof environment.routing.isWorkstationBpnTest).toBe('boolean');
-            expect(typeof environment.routing.localRoutesEnabled).toBe('boolean');
-        });
-
-        it('should have correct types for SSO values', () => {
-            expect(typeof environment.sso.clientId).toBe('string');
-            expect(typeof environment.sso.skipKeycloakLogin).toBe('boolean');
-            expect(typeof environment.sso.disableTokenRefresh).toBe('boolean');
-            expect(Array.isArray(environment.sso.validAuthFlows)).toBe(true);
-        });
-    });
-
-    describe('Configuration Values Validation', () => {
-        it('should have non-empty string values', () => {
-            expect(environment.title.length).toBeGreaterThan(0);
-            expect(environment.matomoTrackingId.length).toBeGreaterThan(0);
-            expect(environment.sso.clientId.length).toBeGreaterThan(0);
-        });
-
-        it('should have valid URL protocols for local routes', () => {
-            Object.values(environment.routing.localRoutes).forEach(url => {
-                expect(url).toMatch(/^https?:\/\//);
-            });
-        });
-
-        it('should have Boeing domain URLs in local routes', () => {
-            Object.values(environment.routing.localRoutes).forEach(url => {
-                expect(url).toContain('boeing.com');
-            });
-        });
-    });
-
-    describe('Environment Consistency', () => {
-        it('should have consistent configuration for local environment', () => {
-            // Since this is environment.local.ts, production should be false
-            expect(environment.production).toBe(false);
-            // Local routes should be enabled for local environment
-            expect(environment.routing.localRoutesEnabled).toBe(true);
-        });
-
-        it('should have preprod cloud environment for local testing', () => {
-            expect(environment.routing.cloudEnvironment).toBe(CloudEnvironment.PREPROD);
-        });
-    });
-});
