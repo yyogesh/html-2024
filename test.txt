@@ -1,151 +1,51 @@
-import { TestBed } from '@angular/core/testing';
-import { of, throwError } from 'rxjs';
-import { AppConfigService } from './app-config.service';
-import { ConfigApiService } from '@apis/config-api.service';
-import { MatomoInitializerService } from 'ngx-matomo-client';
-import { EnvironmentService } from '@missionaccelerator/common/service';
-import { GridState, OperatorType } from 'angular-slickgrid';
-import { MatTabChangeEvent } from '@angular/material/tabs';
-import { uiBuilder } from '@core/config/uiConfig/uiBuilder/uiBuilder';
-import { schemaMapping } from '../schemas/app-tables-schema';
-import { environment } from '@env/environment';
-
-// Mock dependencies
-jest.mock('@core/config/uiConfig/uiBuilder/uiBuilder', () => ({
-  uiBuilder: {
-    platform1: {
-      tabs: [
-        {
-          title: 'Test Tab',
-          type: 'summary',
-          dataSourceKeys: ['source1'],
-          grids: [
-            {
-              dataSourceKeys: ['source1'],
-              lookUp: { schemaKey: 'testSchema' }
-            }
-          ]
+ describe('requestAppConfig', () => {
+    it('should load config successfully', (done) => {
+      service.requestAppConfig().subscribe({
+        next: (result) => {
+          expect(result).toBe(true);
+          expect(configApiService.getHostingEnvironment).toHaveBeenCalled();
+          expect(configApiService.getPlatformConfig).toHaveBeenCalled();
+          expect(configApiService.getLegalMarkings).toHaveBeenCalled();
+          expect(configApiService.getLinks).toHaveBeenCalled();
+          expect(configApiService.getJiraURL).toHaveBeenCalled();
+          expect(matomoInitializer.initializeTracker).toHaveBeenCalled();
+          done();
         }
-      ],
-      scheduleGrid: {
-        grids: [
-          {
-            lookUp: { schemaKey: 'scheduleSchema' }
+      });
+    });
+
+    it('should handle empty platform config', (done) => {
+      configApiService.getPlatformConfig.mockReturnValue(of([]));
+      
+      service.requestAppConfig().subscribe({
+        next: (result) => {
+          expect(result).toBe(false);
+          done();
+        }
+      });
+    });
+
+    it('should handle API errors', (done) => {
+      configApiService.getPlatformConfig.mockReturnValue(throwError('API Error'));
+      
+      service.requestAppConfig().subscribe({
+        error: (error) => {
+          expect(error).toBe(false);
+          done();
+        }
+      });
+    });
+
+    it('should return true if config is already loaded', (done) => {
+      // First load
+      service.requestAppConfig().subscribe(() => {
+        // Second load should return immediately
+        service.requestAppConfig().subscribe({
+          next: (result) => {
+            expect(result).toBe(true);
+            done();
           }
-        ]
-      },
-      assetList: {
-        grids: [
-          {
-            lookUp: { schemaKey: 'assetSchema' }
-          }
-        ]
-      }
-    }
-  }
-}));
-
-jest.mock('../schemas/app-tables-schema', () => ({
-  schemaMapping: new Map([
-    ['testSchema', { columns: ['col1', 'col2'] }],
-    ['scheduleSchema', { columns: ['schedCol1'] }],
-    ['assetSchema', { columns: ['assetCol1'] }]
-  ])
-}));
-
-jest.mock('@env/environment', () => ({
-  environment: {
-    matomoTrackingId: 'test-matomo-id'
-  }
-}));
-
-describe('AppConfigService', () => {
-  let service: AppConfigService;
-  let configApiService: jest.Mocked<ConfigApiService>;
-  let matomoInitializer: jest.Mocked<MatomoInitializerService>;
-
-  const mockPlatformConfig = [
-    {
-      platform: 'fa18',
-      sources: [
-        { source: { key: 'source1', name: 'Test Source' } }
-      ],
-      legal: ['UNCLASSIFIED', 'FOUO']
-    },
-    {
-      platform: 'p8',
-      sources: [
-        { source: { key: 'source2', name: 'Test Source 2' } }
-      ],
-      legal: ['SECRET']
-    }
-  ];
-
-  const mockLegalMarkings = {
-    markings: [
-      ['UNCLASSIFIED', 'Unclassified Information'],
-      ['FOUO', 'For Official Use Only'],
-      ['SECRET', 'Secret Information']
-    ]
-  };
-
-  const mockLinks = [
-    { name: 'Test Link', url: 'http://test.com' }
-  ];
-
-  const mockJiraResponse = {
-    jiraUrl: 'http://jira.test.com',
-    enableBugForm: true
-  };
-
-  beforeEach(() => {
-    const configApiServiceMock = {
-      getHostingEnvironment: jest.fn(),
-      getPlatformConfig: jest.fn().mockReturnValue(of(mockPlatformConfig)),
-      getLegalMarkings: jest.fn().mockReturnValue(of(mockLegalMarkings)),
-      getLinks: jest.fn().mockReturnValue(of(mockLinks)),
-      getJiraURL: jest.fn().mockReturnValue(of(mockJiraResponse))
-    };
-
-    const matomoInitializerMock = {
-      initializeTracker: jest.fn()
-    };
-
-    TestBed.configureTestingModule({
-      providers: [
-        AppConfigService,
-        { provide: ConfigApiService, useValue: configApiServiceMock },
-        { provide: MatomoInitializerService, useValue: matomoInitializerMock }
-      ]
-    });
-
-    service = TestBed.inject(AppConfigService);
-    configApiService = TestBed.inject(ConfigApiService) as jest.Mocked<ConfigApiService>;
-    matomoInitializer = TestBed.inject(MatomoInitializerService) as jest.Mocked<MatomoInitializerService>;
-
-    // Mock EnvironmentService
-    jest.spyOn(EnvironmentService, 'getApiPath').mockReturnValue('http://api-path.test');
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
-  describe('Constructor', () => {
-    it('should create service and initialize configDTO with schema mapping', () => {
-      expect(service).toBeTruthy();
-      expect(service.getConfigDto()).toBeDefined();
-    });
-  });
-
-  describe('getAssets', () => {
-    it('should return empty array initially', () => {
-      expect(service.getAssets()).toEqual([]);
-    });
-
-    it('should return assets after being set', () => {
-      const assets = [{ id: '1', name: 'Asset 1' }];
-      service.setAssets(assets);
-      expect(service.getAssets()).toEqual(assets);
+        });
+      });
     });
   });
