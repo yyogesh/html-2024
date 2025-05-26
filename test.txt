@@ -1,51 +1,196 @@
- describe('requestAppConfig', () => {
-    it('should load config successfully', (done) => {
-      service.requestAppConfig().subscribe({
-        next: (result) => {
-          expect(result).toBe(true);
-          expect(configApiService.getHostingEnvironment).toHaveBeenCalled();
-          expect(configApiService.getPlatformConfig).toHaveBeenCalled();
-          expect(configApiService.getLegalMarkings).toHaveBeenCalled();
-          expect(configApiService.getLinks).toHaveBeenCalled();
-          expect(configApiService.getJiraURL).toHaveBeenCalled();
-          expect(matomoInitializer.initializeTracker).toHaveBeenCalled();
-          done();
-        }
-      });
+ describe('getYear', () => {
+    it('should return correct year from date string', () => {
+      const result = component.getYear('2024-05-15');
+      expect(result).toBe('2024');
     });
 
-    it('should handle empty platform config', (done) => {
-      configApiService.getPlatformConfig.mockReturnValue(of([]));
+    it('should handle timezone offset', () => {
+      const dateString = '2024-01-01T00:00:00.000Z';
+      const result = component.getYear(dateString);
+      expect(typeof result).toBe('string');
+    });
+  });
+
+  describe('onSchedulesChange', () => {
+    it('should process schedule and create data cards and gantt bars', () => {
+      component.onSchedulesChange(mockSchedule);
       
-      service.requestAppConfig().subscribe({
-        next: (result) => {
-          expect(result).toBe(false);
-          done();
-        }
-      });
+      expect(component.assetScheduleToBeCreated.scheduleId).toBe(mockSchedule.id);
+      expect(component.assetSchedules).toEqual(mockSchedule.assetSchedules);
+      expect(component.parentOptions).toEqual(['Asset1']);
+      expect(mockCalendarService.createDataCard).toHaveBeenCalledWith(mockAssetSchedule);
+      expect(mockCalendarService.getAssetStatusColorCode).toHaveBeenCalledWith('75');
+      expect(mockScheduleService.broadcastScheduleChange).toHaveBeenCalledWith(mockSchedule);
     });
 
-    it('should handle API errors', (done) => {
-      configApiService.getPlatformConfig.mockReturnValue(throwError('API Error'));
+    it('should handle asset schedule without endDayOfInduction', () => {
+      const scheduleWithoutEndDate = {
+        ...mockSchedule,
+        assetSchedules: [{ ...mockAssetSchedule, endDayOfInduction: undefined }]
+      };
       
-      service.requestAppConfig().subscribe({
-        error: (error) => {
-          expect(error).toBe(false);
-          done();
-        }
-      });
+      component.onSchedulesChange(scheduleWithoutEndDate);
+      
+      expect(component.ganttBars[0].endDate).toBe(new Date().toLocaleDateString('en-US', {
+        month: 'numeric',
+        day: 'numeric',
+        year: 'numeric'
+      }));
     });
 
-    it('should return true if config is already loaded', (done) => {
-      // First load
-      service.requestAppConfig().subscribe(() => {
-        // Second load should return immediately
-        service.requestAppConfig().subscribe({
-          next: (result) => {
-            expect(result).toBe(true);
-            done();
-          }
-        });
-      });
+    it('should filter asset schedules by selected year', () => {
+      const futureAssetSchedule = {
+        ...mockAssetSchedule,
+        id: 2,
+        asset: 'Asset2',
+        dayOfInduction: new Date('2025-01-15')
+      };
+      const scheduleWithMultipleAssets = {
+        ...mockSchedule,
+        assetSchedules: [mockAssetSchedule, futureAssetSchedule]
+      };
+      component.selectedYear = ['2024'];
+      
+      component.onSchedulesChange(scheduleWithMultipleAssets);
+      
+      expect(component.dataCards).toHaveLength(1);
+      expect(component.ganttBars).toHaveLength(1);
+    });
+
+    it('should set first year as selected when current selection is not available', () => {
+      component.selectedYear = ['2023'];
+      
+      component.onSchedulesChange(mockSchedule);
+      
+      expect(component.selectedYear).toEqual(['2024']);
+    });
+  });
+
+  describe('setFilterElement', () => {
+    it('should set year element values and selected value', () => {
+      component.years = ['2024', '2025'];
+      component.selectedYear = ['2024'];
+      
+      component.setFilterElement([mockSchedule]);
+      
+      const yearElement = component.filterModalData.elements.find(el => el.label === 'Year');
+      expect(yearElement?.values).toEqual([
+        { value: '2024', viewValue: '2024' },
+        { value: '2025', viewValue: '2025' }
+      ]);
+      expect(yearElement?.selectedValue).toEqual(['2024']);
+    });
+
+    it('should set dashboard element with grouped schedules', () => {
+      const schedule2 = { ...mockSchedule, id: 2, title: 'Schedule 2', source: { country: 'Canada' } };
+      
+      component.setFilterElement([mockSchedule, schedule2]);
+      
+      const dashboardElement = component.filterModalData.elements.find(el => el.label === 'Dashboard');
+      expect(dashboardElement?.groups).toHaveLength(2);
+      expect(component.selectedAssetScheduleTitle).toBe('Test Schedule');
+    });
+
+    it('should handle schedule service with non-default schedule', () => {
+      mockScheduleService.isDefaultSchedule.mockReturnValue(false);
+      mockScheduleService.getScheduleId.mockReturnValue(1);
+      
+      component.setFilterElement([mockSchedule]);
+      
+      expect(component.selectedAssetScheduleTitle).toBe('Test Schedule');
+    });
+
+    it('should set first schedule when default or not found', () => {
+      mockScheduleService.isDefaultSchedule.mockReturnValue(true);
+      
+      component.setFilterElement([mockSchedule]);
+      
+      expect(component.selectedAssetScheduleTitle).toBe('Test Schedule');
+    });
+
+    it('should handle schedules with no asset schedules (disabled)', () => {
+      const emptySchedule = { ...mockSchedule, assetSchedules: [] };
+      
+      component.setFilterElement([emptySchedule]);
+      
+      const dashboardElement = component.filterModalData.elements.find(el => el.label === 'Dashboard');
+      const countryGroup = dashboardElement?.groups?.[0] as any;
+      expect(countryGroup.values[0].disabled).toBe(true);
+    });
+  });
+
+  describe('onClickFilter', () => {
+    it('should open filter dialog and handle submit', () => {
+      const mockDialogRef = {
+        componentInstance: {
+          submitEvent: of({
+            eventType: 'submit',
+            elements: [
+              { label: 'Dashboard', selectedValue: mockSchedule },
+              { label: 'Year', selectedValue: ['2024'] }
+            ]
+          })
+        }
+      };
+      mockDialog.open.mockReturnValue(mockDialogRef as any);
+      
+      component.onClickFilter();
+      
+      expect(mockDialog.open).toHaveBeenCalled();
+      expect(component.selectedYear).toEqual(['2024']);
+      expect(component.selectedAssetScheduleTitle).toBe('Test Schedule');
+    });
+
+    it('should handle modal data without year element', () => {
+      const mockDialogRef = {
+        componentInstance: {
+          submitEvent: of({
+            eventType: 'submit',
+            elements: [
+              { label: 'Dashboard', selectedValue: mockSchedule }
+            ]
+          })
+        }
+      };
+      mockDialog.open.mockReturnValue(mockDialogRef as any);
+      
+      component.onClickFilter();
+      
+      expect(component.selectedAssetScheduleTitle).toBe('Test Schedule');
+    });
+
+    it('should handle modal data without dashboard element', () => {
+      const mockDialogRef = {
+        componentInstance: {
+          submitEvent: of({
+            eventType: 'submit',
+            elements: [
+              { label: 'Year', selectedValue: ['2024'] }
+            ]
+          })
+        }
+      };
+      mockDialog.open.mockReturnValue(mockDialogRef as any);
+      
+      component.onClickFilter();
+      
+      expect(component.selectedYear).toEqual(['2024']);
+    });
+
+    it('should not process non-submit events', () => {
+      const mockDialogRef = {
+        componentInstance: {
+          submitEvent: of({
+            eventType: 'cancel',
+            elements: []
+          })
+        }
+      };
+      mockDialog.open.mockReturnValue(mockDialogRef as any);
+      const originalYear = component.selectedYear;
+      
+      component.onClickFilter();
+      
+      expect(component.selectedYear).toEqual(originalYear);
     });
   });
