@@ -1,0 +1,217 @@
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { Router } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
+import { MatDialog } from '@angular/material/dialog';
+import { of, Subject, throwError } from 'rxjs';
+import { signal } from '@angular/core';
+
+import { CalendarComponent } from './calendar.component';
+import { ScheduleApiService } from '@apis/schedule-api.service';
+import { ScheduleService } from '@core/services/schedule.service';
+import { AssetScheduleApiService } from '@apis/asset-schedule-api.service';
+import { CalendarService } from '@services/calendar.service';
+import { BreadcrumbService, EnableTourService, NotificationsService, UiTourPreferenceService } from '@missionaccelerator/common/service';
+import { BrowserRefreshedService } from '@core/services/browserRefreshed.service';
+import { AppAnalyticsService } from '@core/services/app-analytics.service';
+import { AppAuthService } from '@core/services/app-auth.service';
+import { AssetSchedule } from '@customTypes/assetSchedule.interface';
+import { Schedule } from '@customTypes/schedule.interface';
+import { DataCard } from '@customTypes/dataCard.interface';
+import { GanttBar } from '@missionaccelerator/common/model';
+
+describe('CalendarComponent', () => {
+  let component: CalendarComponent;
+  let fixture: ComponentFixture<CalendarComponent>;
+  let mockScheduleApiService: jest.Mocked<ScheduleApiService>;
+  let mockScheduleService: jest.Mocked<ScheduleService>;
+  let mockAssetScheduleApiService: jest.Mocked<AssetScheduleApiService>;
+  let mockCalendarService: jest.Mocked<CalendarService>;
+  let mockBreadcrumbService: jest.Mocked<BreadcrumbService>;
+  let mockBrowserRefreshedService: jest.Mocked<BrowserRefreshedService>;
+  let mockRouter: jest.Mocked<Router>;
+  let mockActivatedRoute: any;
+  let mockDialog: jest.Mocked<MatDialog>;
+  let mockNotificationsService: jest.Mocked<NotificationsService>;
+  let mockEnableTourService: jest.Mocked<EnableTourService>;
+  let mockAppAnalyticsService: jest.Mocked<AppAnalyticsService>;
+  let mockAppAuthService: jest.Mocked<AppAuthService>;
+  let mockUiTourPreferenceService: jest.Mocked<UiTourPreferenceService>;
+
+  const mockAssetSchedule: AssetSchedule = {
+    id: 1,
+    asset: 'Asset1',
+    scheduleId: 1,
+    dayOfInduction: new Date('2024-01-15'),
+    endDayOfInduction: new Date('2024-01-30'),
+    tdPrerequisitePercentage: '75'
+  };
+
+  const mockSchedule: Schedule = {
+    id: 1,
+    title: 'Test Schedule',
+    source: { country: 'USA' },
+    assetSchedules: [mockAssetSchedule]
+  };
+
+  const mockDataCard: DataCard = {
+    firstRow: 'Test',
+    secondRow: 'Asset1',
+    thirdRow: 'Test Data',
+    fourthRow: 'Status',
+    visible: true
+  };
+
+  const mockGanttBar: GanttBar = {
+    barTitle: 'Asset1',
+    overviewPageLink: '/V3/platform/Asset1/overview',
+    startDate: '1/15/2024',
+    endDate: '1/30/2024',
+    statusColor: '#green',
+    barWidth: 0,
+    barTranslation: 0
+  };
+
+  beforeEach(async () => {
+    const mockTourService = {
+      start: jest.fn(),
+      end$: new Subject()
+    };
+
+    mockScheduleApiService = {
+      getAllSchedules: jest.fn(),
+      setSchedule: jest.fn()
+    } as any;
+
+    mockScheduleService = {
+      getDefaultAssetSchedule: jest.fn(),
+      broadcastScheduleChange: jest.fn(),
+      isDefaultSchedule: jest.fn(),
+      getScheduleId: jest.fn(),
+      createAssetSchedule: jest.fn()
+    } as any;
+
+    mockAssetScheduleApiService = {
+      getAllAssets: jest.fn(),
+      setAssetIds: jest.fn(),
+      createAssetSchedule: jest.fn()
+    } as any;
+
+    mockCalendarService = {
+      createDataCard: jest.fn(),
+      getAssetStatusColorCode: jest.fn(),
+      prepareAssetScheduleData: jest.fn()
+    } as any;
+
+    mockBreadcrumbService = {
+      createBreadcrumbs: jest.fn(),
+      getBreadcrumbs: [],
+      setBreadcrumbs: jest.fn()
+    } as any;
+
+    mockBrowserRefreshedService = {
+      getBrowserRefreshed: jest.fn()
+    } as any;
+
+    mockRouter = {
+      navigate: jest.fn()
+    } as any;
+
+    mockActivatedRoute = {
+      url: of([{ path: 'calendar' }, { path: 'platform' }])
+    };
+
+    mockDialog = {
+      open: jest.fn()
+    } as any;
+
+    mockNotificationsService = {
+      success: jest.fn(),
+      error: jest.fn()
+    } as any;
+
+    mockEnableTourService = {
+      setHasTour: jest.fn(),
+      getEnableTour: jest.fn(),
+      getTourService: jest.fn().mockReturnValue(mockTourService),
+      initializeTour: jest.fn(),
+      startTourWhenReady: jest.fn(),
+      toggleEnableTour: jest.fn()
+    } as any;
+
+    mockAppAnalyticsService = {
+      trackEvent: jest.fn()
+    } as any;
+
+    mockAppAuthService = {
+      isAdminUser: jest.fn()
+    } as any;
+
+    mockUiTourPreferenceService = {
+      isTourRequired: jest.fn(),
+      handleDisableTourForModule: jest.fn()
+    } as any;
+
+    await TestBed.configureTestingModule({
+      imports: [CalendarComponent],
+      providers: [
+        { provide: ScheduleApiService, useValue: mockScheduleApiService },
+        { provide: ScheduleService, useValue: mockScheduleService },
+        { provide: AssetScheduleApiService, useValue: mockAssetScheduleApiService },
+        { provide: CalendarService, useValue: mockCalendarService },
+        { provide: BreadcrumbService, useValue: mockBreadcrumbService },
+        { provide: BrowserRefreshedService, useValue: mockBrowserRefreshedService },
+        { provide: Router, useValue: mockRouter },
+        { provide: ActivatedRoute, useValue: mockActivatedRoute },
+        { provide: MatDialog, useValue: mockDialog },
+        { provide: NotificationsService, useValue: mockNotificationsService },
+        { provide: EnableTourService, useValue: mockEnableTourService },
+        { provide: AppAnalyticsService, useValue: mockAppAnalyticsService },
+        { provide: AppAuthService, useValue: mockAppAuthService },
+        { provide: UiTourPreferenceService, useValue: mockUiTourPreferenceService }
+      ]
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(CalendarComponent);
+    component = fixture.componentInstance;
+
+    // Setup default mocks
+    mockScheduleService.getDefaultAssetSchedule.mockReturnValue(mockAssetSchedule);
+    mockEnableTourService.getEnableTour.mockReturnValue(false);
+    mockBrowserRefreshedService.getBrowserRefreshed.mockReturnValue(false);
+    mockScheduleApiService.getAllSchedules.mockReturnValue(of([mockSchedule]));
+    mockCalendarService.createDataCard.mockReturnValue(mockDataCard);
+    mockCalendarService.getAssetStatusColorCode.mockReturnValue('#green');
+    mockAppAuthService.isAdminUser.mockReturnValue(true);
+    mockUiTourPreferenceService.isTourRequired.mockReturnValue(of(false));
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('Component Initialization', () => {
+    it('should create', () => {
+      expect(component).toBeTruthy();
+    });
+
+    it('should initialize with default values', () => {
+      expect(component.assetSchedules).toEqual([]);
+      expect(component.dataCards).toEqual([]);
+      expect(component.ganttBars).toEqual([]);
+      expect(component.displayedGanttBars).toEqual([]);
+      expect(component.searchTerm).toBe('');
+      expect(component.isLoading).toBe(false);
+      expect(component.showModal).toBe(false);
+      expect(component.selectedYear).toEqual([new Date().getFullYear().toString()]);
+    });
+
+    it('should set platform from route URL', () => {
+      fixture.detectChanges();
+      expect(component.platform).toBe('platform');
+    });
+
+    it('should initialize tour service', () => {
+      fixture.detectChanges();
+      expect(mockEnableTourService.setHasTour).toHaveBeenCalledWith(true);
+    });
+  });
