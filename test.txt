@@ -1,96 +1,210 @@
-describe('ngOnInit', () => {
-    it('should initialize tour and breadcrumbs when browser not refreshed', () => {
-      mockBrowserRefreshedService.getBrowserRefreshed.mockReturnValue(false);
-      
-      component.ngOnInit();
-      
-      expect(mockEnableTourService.initializeTour).toHaveBeenCalled();
-      expect(mockBreadcrumbService.createBreadcrumbs).toHaveBeenCalledWith(mockActivatedRoute, 'Dashboard');
+import { environment } from './environment.local';
+import { 
+    API, 
+    ApiGatewayMode, 
+    CloudEnvironment, 
+    PROXY_PATH, 
+    ValidAuthFlow 
+} from '@missionaccelerator/common/model';
+
+describe('Environment Local Configuration', () => {
+    it('should be defined', () => {
+        expect(environment).toBeDefined();
     });
 
-    it('should handle breadcrumbs when browser refreshed and breadcrumbs exist', () => {
-      mockBrowserRefreshedService.getBrowserRefreshed.mockReturnValue(true);
-      mockBreadcrumbService.getBreadcrumbs = [{ label: 'Test', url: '/test' }];
-      
-      component.ngOnInit();
-      
-      expect(mockBreadcrumbService.setBreadcrumbs).toHaveBeenCalled();
+    describe('Basic Configuration', () => {
+        it('should have production set to false', () => {
+            expect(environment.production).toBe(false);
+        });
+
+        it('should have correct title', () => {
+            expect(environment.title).toBe('Induction Planner');
+        });
+
+        it('should have matomo tracking id set', () => {
+            expect(environment.matomoTrackingId).toBe('21');
+        });
     });
 
-    it('should create breadcrumbs when browser refreshed but no breadcrumbs exist', () => {
-      mockBrowserRefreshedService.getBrowserRefreshed.mockReturnValue(true);
-      mockBreadcrumbService.getBreadcrumbs = [];
-      
-      component.ngOnInit();
-      
-      expect(mockBreadcrumbService.createBreadcrumbs).toHaveBeenCalledWith(mockActivatedRoute, 'Dashboard');
+    describe('Routing Configuration', () => {
+        it('should have routing object defined', () => {
+            expect(environment.routing).toBeDefined();
+            expect(typeof environment.routing).toBe('object');
+        });
+
+        it('should have correct API configuration', () => {
+            expect(environment.routing.api).toBe(API.DEFAULT_API_PREFIX);
+        });
+
+        it('should have correct proxy path', () => {
+            expect(environment.routing.proxyPath).toBe(PROXY_PATH.INDUCTION_PLANNER);
+        });
+
+        it('should have workstation BPN test disabled', () => {
+            expect(environment.routing.isWorkstationBpnTest).toBe(false);
+        });
+
+        it('should have correct API gateway mode', () => {
+            expect(environment.routing.apiGatewayMode).toBe(ApiGatewayMode.CLOUD_TAS_USA);
+        });
+
+        it('should have correct cloud environment', () => {
+            expect(environment.routing.cloudEnvironment).toBe(CloudEnvironment.PREPROD);
+        });
+
+        it('should have local routes enabled', () => {
+            expect(environment.routing.localRoutesEnabled).toBe(true);
+        });
+
+        describe('Local Routes', () => {
+            it('should have local routes object defined', () => {
+                expect(environment.routing.localRoutes).toBeDefined();
+                expect(typeof environment.routing.localRoutes).toBe('object');
+            });
+
+            it('should have induction planner route configured', () => {
+                const inductionPlannerRoute = environment.routing.localRoutes[PROXY_PATH.INDUCTION_PLANNER];
+                expect(inductionPlannerRoute).toBeDefined();
+                expect(inductionPlannerRoute).toBe('https://missionaccelerator-test.web.boeing.com/api-gateway/induction-planner');
+            });
+
+            it('should have static assets route configured', () => {
+                const staticAssetsRoute = environment.routing.localRoutes[PROXY_PATH.STATIC_ASSETS];
+                expect(staticAssetsRoute).toBeDefined();
+                expect(staticAssetsRoute).toBe('https://missionaccelerator-test.web.boeing.com/api-gateway/static-assets');
+            });
+
+            it('should have valid URL format for induction planner route', () => {
+                const inductionPlannerRoute = environment.routing.localRoutes[PROXY_PATH.INDUCTION_PLANNER];
+                expect(() => new URL(inductionPlannerRoute)).not.toThrow();
+            });
+
+            it('should have valid URL format for static assets route', () => {
+                const staticAssetsRoute = environment.routing.localRoutes[PROXY_PATH.STATIC_ASSETS];
+                expect(() => new URL(staticAssetsRoute)).not.toThrow();
+            });
+        });
     });
 
-    it('should set addNewCard based on admin user status', () => {
-      mockAppAuthService.isAdminUser.mockReturnValue(true);
-      
-      component.ngOnInit();
-      
-      expect(component.addNewCard.showAddNew).toBe(true);
-      expect(component.addNewCard.thirdRow).toBe('Add New');
+    describe('SSO Configuration', () => {
+        it('should have SSO object defined', () => {
+            expect(environment.sso).toBeDefined();
+            expect(typeof environment.sso).toBe('object');
+        });
+
+        it('should have correct client ID', () => {
+            expect(environment.sso.clientId).toBe('induction-planner-ui');
+        });
+
+        it('should have valid auth flows configured', () => {
+            expect(environment.sso.validAuthFlows).toBeDefined();
+            expect(Array.isArray(environment.sso.validAuthFlows)).toBe(true);
+            expect(environment.sso.validAuthFlows).toHaveLength(2);
+        });
+
+        it('should include BPN_HEADER auth flow', () => {
+            expect(environment.sso.validAuthFlows).toContain(ValidAuthFlow.BPN_HEADER);
+        });
+
+        it('should include ACCESS_TOKEN auth flow', () => {
+            expect(environment.sso.validAuthFlows).toContain(ValidAuthFlow.ACCESS_TOKEN);
+        });
+
+        it('should have keycloak login skipped', () => {
+            expect(environment.sso.skipKeycloakLogin).toBe(true);
+        });
+
+        it('should have token refresh enabled', () => {
+            expect(environment.sso.disableTokenRefresh).toBe(false);
+        });
     });
 
-    it('should handle tour end subscription when tour is disabled', () => {
-      const tourEndSubject = new Subject();
-      const mockTourService = {
-        start: jest.fn(),
-        end$: tourEndSubject
-      };
-      mockEnableTourService.getTourService.mockReturnValue(mockTourService);
-      mockEnableTourService.getEnableTour.mockReturnValue(false);
-      
-      component.ngOnInit();
-      tourEndSubject.next();
-      
-      expect(mockUiTourPreferenceService.handleDisableTourForModule).toHaveBeenCalledWith('calendar');
+    describe('Environment Structure Validation', () => {
+        it('should have all required top-level properties', () => {
+            const requiredProperties = ['production', 'title', 'routing', 'matomoTrackingId', 'sso'];
+            requiredProperties.forEach(prop => {
+                expect(environment).toHaveProperty(prop);
+            });
+        });
+
+        it('should have all required routing properties', () => {
+            const requiredRoutingProps = [
+                'api', 
+                'proxyPath', 
+                'isWorkstationBpnTest', 
+                'apiGatewayMode', 
+                'cloudEnvironment', 
+                'localRoutesEnabled', 
+                'localRoutes'
+            ];
+            requiredRoutingProps.forEach(prop => {
+                expect(environment.routing).toHaveProperty(prop);
+            });
+        });
+
+        it('should have all required SSO properties', () => {
+            const requiredSsoProps = [
+                'clientId', 
+                'validAuthFlows', 
+                'skipKeycloakLogin', 
+                'disableTokenRefresh'
+            ];
+            requiredSsoProps.forEach(prop => {
+                expect(environment.sso).toHaveProperty(prop);
+            });
+        });
     });
 
-    it('should handle tour end subscription when tour is enabled', () => {
-      const tourEndSubject = new Subject();
-      const mockTourService = {
-        start: jest.fn(),
-        end$: tourEndSubject
-      };
-      mockEnableTourService.getTourService.mockReturnValue(mockTourService);
-      mockEnableTourService.getEnableTour.mockReturnValue(true);
-      
-      component.ngOnInit();
-      tourEndSubject.next();
-      
-      expect(mockEnableTourService.toggleEnableTour).toHaveBeenCalled();
-    });
-  });
+    describe('Type Validation', () => {
+        it('should have correct types for primitive values', () => {
+            expect(typeof environment.production).toBe('boolean');
+            expect(typeof environment.title).toBe('string');
+            expect(typeof environment.matomoTrackingId).toBe('string');
+        });
 
-  describe('ngAfterViewInit', () => {
-    it('should start tour when required', () => {
-      mockUiTourPreferenceService.isTourRequired.mockReturnValue(of(true));
-      mockEnableTourService.startTourWhenReady.mockReturnValue(of({}));
-      
-      component.ngAfterViewInit();
-      
-      expect(mockEnableTourService.startTourWhenReady).toHaveBeenCalled();
+        it('should have correct types for routing values', () => {
+            expect(typeof environment.routing.isWorkstationBpnTest).toBe('boolean');
+            expect(typeof environment.routing.localRoutesEnabled).toBe('boolean');
+        });
+
+        it('should have correct types for SSO values', () => {
+            expect(typeof environment.sso.clientId).toBe('string');
+            expect(typeof environment.sso.skipKeycloakLogin).toBe('boolean');
+            expect(typeof environment.sso.disableTokenRefresh).toBe('boolean');
+            expect(Array.isArray(environment.sso.validAuthFlows)).toBe(true);
+        });
     });
 
-    it('should not start tour when not required', () => {
-      mockUiTourPreferenceService.isTourRequired.mockReturnValue(of(false));
-      
-      component.ngAfterViewInit();
-      
-      expect(mockEnableTourService.startTourWhenReady).not.toHaveBeenCalled();
-    });
-  });
+    describe('Configuration Values Validation', () => {
+        it('should have non-empty string values', () => {
+            expect(environment.title.length).toBeGreaterThan(0);
+            expect(environment.matomoTrackingId.length).toBeGreaterThan(0);
+            expect(environment.sso.clientId.length).toBeGreaterThan(0);
+        });
 
-  describe('ngOnDestroy', () => {
-    it('should unsubscribe from subscriptions', () => {
-      const unsubscribeSpy = jest.spyOn(component['subscriptions'], 'unsubscribe');
-      
-      component.ngOnDestroy();
-      
-      expect(unsubscribeSpy).toHaveBeenCalled();
+        it('should have valid URL protocols for local routes', () => {
+            Object.values(environment.routing.localRoutes).forEach(url => {
+                expect(url).toMatch(/^https?:\/\//);
+            });
+        });
+
+        it('should have Boeing domain URLs in local routes', () => {
+            Object.values(environment.routing.localRoutes).forEach(url => {
+                expect(url).toContain('boeing.com');
+            });
+        });
     });
-  });
+
+    describe('Environment Consistency', () => {
+        it('should have consistent configuration for local environment', () => {
+            // Since this is environment.local.ts, production should be false
+            expect(environment.production).toBe(false);
+            // Local routes should be enabled for local environment
+            expect(environment.routing.localRoutesEnabled).toBe(true);
+        });
+
+        it('should have preprod cloud environment for local testing', () => {
+            expect(environment.routing.cloudEnvironment).toBe(CloudEnvironment.PREPROD);
+        });
+    });
+});
