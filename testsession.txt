@@ -1,0 +1,786 @@
+import { Injectable, NgZone } from '@angular/core';
+import { BehaviorSubject, Observable, timer, fromEvent, merge, NEVER } from 'rxjs';
+import { takeUntil, map, switchMap, startWith } from 'rxjs/operators';
+import { Router } from '@angular/router';
+import { AuthService } from './auth.service';
+
+export interface SessionWarningData {
+  show: boolean;
+  remainingTime: number;
+  formattedTime: string;
+}
+
+@Injectable({
+  providedIn: 'root'
+})
+export class SessionService {
+  private readonly SESSION_TIMEOUT = 20 * 60 * 1000; // 20 minutes
+  private readonly WARNING_THRESHOLD = 2 * 60 * 1000; // 2 minutes before timeout
+  private readonly WARNING_START = this.SESSION_TIMEOUT - this.WARNING_THRESHOLD; // 18 minutes
+
+  private sessionTimeoutSubject = new BehaviorSubject<number>(0);
+  public sessionTimeout$: Observable<number> = this.sessionTimeoutSubject.asObservable();
+
+  private sessionWarningSubject = new BehaviorSubject<SessionWarningData>({
+    show: false,
+    remainingTime: 0,
+    formattedTime: '0:00'
+  });
+  public sessionWarning$: Observable<SessionWarningData> = this.sessionWarningSubject.asObservable();
+
+  private sessionTimer: any;
+  private warningTimer: any;
+  private activitySubscription: any;
+  private lastActivity: number = Date.now();
+  private isWarningShown: boolean = false;
+
+  constructor(
+    private router: Router,
+    private authService: AuthService,
+    private ngZone: NgZone
+  ) {
+    this.initSessionTracking();
+  }
+
+  private initSessionTracking() {
+    if (this.authService.isAuthenticated()) {
+      this.startSessionTimer();
+      this.setupActivityTracking();
+    }
+  }
+
+  private setupActivityTracking() {
+    // List of events to track for user activity
+    const activityEvents = [
+      'mousedown',
+      'mousemove',
+      'keypress',
+      'scroll',
+      'touchstart',
+      'click',
+      'keydown'
+    ];
+
+    // Create observables for all activity events
+    const activityObservables = activityEvents.map(event =>
+      fromEvent(document, event)
+    );
+
+    // Merge all activity observables
+    this.activitySubscription = merge(...activityObservables)
+      .subscribe(() => this.onUserActivity());
+  }
+
+  private onUserActivity() {
+    this.lastActivity = Date.now();
+    
+    // If warning is shown, hide it and reset timer
+    if (this.isWarningShown) {
+      this.hideWarning();
+      this.resetSessionTimer();
+    }
+  }
+
+  startSessionTimer() {
+    // Clear any existing timers
+    this.clearTimers();
+    
+    this.lastActivity = Date.now();
+    this.isWarningShown = false;
+
+    // Start the main session monitoring
+    this.runSessionMonitoring();
+  }
+
+  private runSessionMonitoring() {
+    // Create a timer that checks every second
+    this.sessionTimer = timer(0, 1000).subscribe(() => {
+      const now = Date.now();
+      const timeSinceActivity = now - this.lastActivity;
+      const remainingTime = this.SESSION_TIMEOUT - timeSinceActivity;
+
+      this.sessionTimeoutSubject.next(remainingTime);
+
+      if (remainingTime <= 0) {
+        // Session expired
+        this.handleSessionTimeout();
+      } else if (remainingTime <= this.WARNING_THRESHOLD && !this.isWarningShown) {
+        // Show warning
+        this.showSessionWarning();
+      }
+
+      // Update warning countdown if warning is shown
+      if (this.isWarningShown && remainingTime > 0) {
+        this.updateWarningCountdown(remainingTime);
+      }
+    });
+  }
+
+  private showSessionWarning() {
+    this.isWarningShown = true;
+    const remainingTime = this.WARNING_THRESHOLD;
+    
+    this.sessionWarningSubject.next({
+      show: true,
+      remainingTime: remainingTime,
+      formattedTime: this.formatTime(remainingTime)
+    });
+  }
+
+  private updateWarningCountdown(remainingTime: number) {
+    this.sessionWarningSubject.next({
+      show: true,
+      remainingTime: remainingTime,
+      formattedTime: this.formatTime(remainingTime)
+    });
+  }
+
+  private hideWarning() {
+    this.isWarningShown = false;
+    this.sessionWarningSubject.next({
+      show: false,
+      remainingTime: 0,
+      formattedTime: '0:00'
+    });
+  }
+
+  private formatTime(milliseconds: number): string {
+    const totalSeconds = Math.ceil(milliseconds / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  }
+
+  private handleSessionTimeout() {
+    this.clearTimers();
+    this.hideWarning();
+    
+    // Log out the user
+    this.authService.logout();
+    
+    // Redirect to login page with session expired flag
+    this.router.navigate(['/login'], {
+      queryParams: { sessionExpired: true }
+    });
+  }
+
+  // Called when user clicks "Continue Session" or "Stay Logged In"
+  extendSession() {
+    this.hideWarning();
+    this.resetSessionTimer();
+  }
+
+  resetSessionTimer() {
+    this.lastActivity = Date.now();
+    this.isWarningShown = false;
+    this.startSessionTimer();
+  }
+
+  stopSessionTimer() {
+    this.clearTimers();
+    this.hideWarning();
+    
+    if (this.activitySubscription) {
+      this.activitySubscription.unsubscribe();
+    }
+  }
+
+  private clearTimers() {
+    if (this.sessionTimer) {
+      this.sessionTimer.unsubscribe();
+    }
+    if (this.warningTimer) {
+      clearTimeout(this.warningTimer);
+    }
+  }
+
+  // Method to get current session status
+  getSessionStatus(): { isActive: boolean, remainingTime: number, isWarningShown: boolean } {
+    const now = Date.now();
+    const timeSinceActivity = now - this.lastActivity;
+    const remainingTime = this.SESSION_TIMEOUT - timeSinceActivity;
+    
+    return {
+      isActive: remainingTime > 0,
+      remainingTime: Math.max(0, remainingTime),
+      isWarningShown: this.isWarningShown
+    };
+  }
+
+  validateToken(token: string) {
+    // Your existing token validation logic
+    return { user: '' }; // this.authService.validateToken(token);
+  }
+
+  // Method to manually trigger session refresh (useful for API calls)
+  refreshSession() {
+    this.onUserActivity();
+  }
+}
+
+
+
+
+// session-warning-modal.component.ts
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Subscription } from 'rxjs';
+import { SessionService, SessionWarningData } from '../services/session.service';
+
+@Component({
+  selector: 'app-session-warning-modal',
+  template: `
+    <div class="session-modal-overlay" *ngIf="warningData.show" (click)="onOverlayClick($event)">
+      <div class="session-modal" (click)="$event.stopPropagation()">
+        <div class="session-modal-header">
+          <h3>Session Timeout Warning</h3>
+          <span class="warning-icon">⚠️</span>
+        </div>
+        
+        <div class="session-modal-body">
+          <p>Your session will expire due to inactivity.</p>
+          <div class="countdown-display">
+            <span class="countdown-label">Time remaining:</span>
+            <span class="countdown-time">{{ warningData.formattedTime }}</span>
+          </div>
+          <p class="modal-message">
+            Click "Continue Session" to stay logged in, or you will be automatically logged out.
+          </p>
+        </div>
+        
+        <div class="session-modal-actions">
+          <button 
+            class="btn btn-primary continue-btn"
+            (click)="continueSession()"
+            [disabled]="warningData.remainingTime <= 0">
+            Continue Session
+          </button>
+          <button 
+            class="btn btn-secondary logout-btn"
+            (click)="logoutNow()">
+            Logout Now
+          </button>
+        </div>
+      </div>
+    </div>
+  `,
+  styles: [`
+    .session-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.6);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+      backdrop-filter: blur(2px);
+    }
+
+    .session-modal {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      max-width: 450px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+      animation: modalSlideIn 0.3s ease-out;
+    }
+
+    @keyframes modalSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-30px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .session-modal-header {
+      padding: 24px 24px 16px;
+      border-bottom: 1px solid #e5e5e5;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .session-modal-header h3 {
+      margin: 0;
+      color: #d32f2f;
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .warning-icon {
+      font-size: 24px;
+    }
+
+    .session-modal-body {
+      padding: 24px;
+    }
+
+    .session-modal-body p {
+      margin: 0 0 16px 0;
+      color: #555;
+      line-height: 1.5;
+    }
+
+    .countdown-display {
+      background: #fff3cd;
+      border: 1px solid #ffeaa7;
+      border-radius: 8px;
+      padding: 16px;
+      margin: 16px 0;
+      text-align: center;
+    }
+
+    .countdown-label {
+      display: block;
+      font-size: 14px;
+      color: #856404;
+      margin-bottom: 8px;
+    }
+
+    .countdown-time {
+      display: block;
+      font-size: 32px;
+      font-weight: bold;
+      color: #d32f2f;
+      font-family: 'Courier New', monospace;
+    }
+
+    .modal-message {
+      font-size: 14px;
+      color: #666;
+    }
+
+    .session-modal-actions {
+      padding: 16px 24px 24px;
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      min-width: 120px;
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background-color: #1976d2;
+      color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background-color: #1565c0;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background-color: #f5f5f5;
+      color: #666;
+      border: 1px solid #ddd;
+    }
+
+    .btn-secondary:hover {
+      background-color: #eeeeee;
+      transform: translateY(-1px);
+    }
+
+    .continue-btn {
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(25, 118, 210, 0.4); }
+      70% { box-shadow: 0 0 0 10px rgba(25, 118, 210, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(25, 118, 210, 0); }
+    }
+
+    @media (max-width: 480px) {
+      .session-modal {
+        width: 95%;
+        margin: 20px;
+      }
+      
+      .session-modal-actions {
+        flex-direction: column;
+      }
+      
+      .btn {
+        width: 100%;
+      }
+    }
+  `]
+})
+export class SessionWarningModalComponent implements OnInit, OnDestroy {
+  warningData: SessionWarningData = {
+    show: false,
+    remainingTime: 0,
+    formattedTime: '0:00'
+  };
+
+  private subscription: Subscription = new Subscription();
+
+  constructor(private sessionService: SessionService) {}
+
+  ngOnInit() {
+    this.subscription.add(
+      this.sessionService.sessionWarning$.subscribe(data => {
+        this.warningData = data;
+      })
+    );
+  }
+
+  ngOnDestroy() {
+    this.subscription.unsubscribe();
+  }
+
+  continueSession() {
+    this.sessionService.extendSession();
+  }
+
+  logoutNow() {
+    // This will trigger the logout process
+    this.sessionService.stopSessionTimer();
+    // The session service will handle the actual logout and redirect
+  }
+
+  onOverlayClick(event: Event) {
+    // Prevent closing modal by clicking overlay during warning
+    event.stopPropagation();
+  }
+}
+
+// session-warning-modal.component.html (if using separate template file)
+/*
+<div class="session-modal-overlay" *ngIf="warningData.show" (click)="onOverlayClick($event)">
+  <div class="session-modal" (click)="$event.stopPropagation()">
+    <div class="session-modal-header">
+      <h3>Session Timeout Warning</h3>
+      <span class="warning-icon">⚠️</span>
+    </div>
+    
+    <div class="session-modal-body">
+      <p>Your session will expire due to inactivity.</p>
+      <div class="countdown-display">
+        <span class="countdown-label">Time remaining:</span>
+        <span class="countdown-time">{{ warningData.formattedTime }}</span>
+      </div>
+      <p class="modal-message">
+        Click "Continue Session" to stay logged in, or you will be automatically logged out.
+      </p>
+    </div>
+    
+    <div class="session-modal-actions">
+      <button 
+        class="btn btn-primary continue-btn"
+        (click)="continueSession()"
+        [disabled]="warningData.remainingTime <= 0">
+        Continue Session
+      </button>
+      <button 
+        class="btn btn-secondary logout-btn"
+        (click)="logoutNow()">
+        Logout Now
+      </button>
+    </div>
+  </div>
+</div>
+*/
+
+
+
+import { Injectable } from '@angular/core';
+import { ActivatedRouteSnapshot, CanActivate, RouterStateSnapshot, Router } from '@angular/router';
+import { Observable } from 'rxjs';
+import { SessionService } from '../services/session.service';
+import { AuthService } from '../services/auth.service';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class SessionGuard implements CanActivate {
+  constructor(
+    private readonly sessionService: SessionService,
+    private readonly authService: AuthService,
+    private readonly router: Router
+  ) {}
+
+  canActivate(
+    next: ActivatedRouteSnapshot,
+    state: RouterStateSnapshot
+  ): boolean | Promise<boolean> | Observable<boolean> {
+    try {
+      // Check if user is authenticated first
+      if (!this.authService.isAuthenticated()) {
+        this.redirectToLogin('No valid authentication');
+        return false;
+      }
+
+      // Get current session status
+      const sessionStatus = this.sessionService.getSessionStatus();
+      
+      if (!sessionStatus.isActive) {
+        this.redirectToLogin('Session expired');
+        return false;
+      }
+
+      // Extract and validate token if needed
+      const token = this.extractTokenFromRequest(next) || this.authService.getToken();
+      
+      if (!token) {
+        this.redirectToLogin('No token provided');
+        return false;
+      }
+
+      // Validate the session/token
+      const isValidSession = this.validateSession(token, next);
+      
+      if (!isValidSession) {
+        this.redirectToLogin('Invalid session');
+        return false;
+      }
+
+      // Refresh session activity on successful route access
+      this.sessionService.refreshSession();
+
+      return true;
+    } catch (error) {
+      console.error('Session validation error:', error);
+      this.redirectToLogin('Session validation failed');
+      return false;
+    }
+  }
+
+  private extractTokenFromRequest(route: ActivatedRouteSnapshot): string | null {
+    // Try to get token from route data, query params, or headers
+    const token = route.queryParams['token'] || 
+                  route.data['token'] || 
+                  this.authService.getToken();
+    
+    return token;
+  }
+
+  private validateSession(token: string, route: ActivatedRouteSnapshot): boolean {
+    try {
+      // Perform session validation using the session service
+      const session = this.sessionService.validateToken(token);
+
+      if (!session) {
+        return false;
+      }
+
+      // Optional: Attach user information to the route
+      route.data = { ...route.data, user: session.user };
+
+      // Additional validation can be performed here
+      return this.performAdditionalValidation(session);
+    } catch (error) {
+      console.error('Token validation error:', error);
+      return false;
+    }
+  }
+
+  private performAdditionalValidation(session: any): boolean {
+    // Add any additional session validation logic here
+    // For example: check user roles, permissions, account status, etc.
+    
+    if (!session.user) {
+      return false;
+    }
+
+    // Example additional checks:
+    // - User account is active
+    // - User has required permissions
+    // - Session hasn't been revoked server-side
+    
+    return true;
+  }
+
+  private redirectToLogin(reason: string) {
+    console.warn('Redirecting to login:', reason);
+    
+    // Stop the current session timer
+    this.sessionService.stopSessionTimer();
+    
+    // Redirect to login page with appropriate query parameters
+    this.router.navigate(['/login'], {
+      queryParams: { 
+        sessionExpired: true,
+        reason: reason 
+      }
+    });
+  }
+}
+
+
+
+
+
+// app.component.ts
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Subscription } from 'rxjs';
+import { SessionService } from './services/session.service';
+import { AuthService } from './services/auth.service';
+import { Router, NavigationEnd } from '@angular/router';
+import { filter } from 'rxjs/operators';
+
+@Component({
+  selector: 'app-root',
+  template: `
+    <div class="app-container">
+      <!-- Your main app content -->
+      <router-outlet></router-outlet>
+      
+      <!-- Session warning modal - always present -->
+      <app-session-warning-modal></app-session-warning-modal>
+      
+      <!-- Optional: Session status indicator (for debugging) -->
+      <div class="session-debug" *ngIf="showDebugInfo">
+        <p>Session Active: {{ sessionStatus.isActive }}</p>
+        <p>Remaining: {{ formatTime(sessionStatus.remainingTime) }}</p>
+        <p>Warning: {{ sessionStatus.isWarningShown }}</p>
+      </div>
+    </div>
+  `,
+  styles: [`
+    .app-container {
+      min-height: 100vh;
+      position: relative;
+    }
+    
+    .session-debug {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      z-index: 9999;
+    }
+    
+    .session-debug p {
+      margin: 2px 0;
+    }
+  `]
+})
+export class AppComponent implements OnInit, OnDestroy {
+  sessionStatus = {
+    isActive: false,
+    remainingTime: 0,
+    isWarningShown: false
+  };
+
+  showDebugInfo = false; // Set to true for debugging
+  private subscriptions = new Subscription();
+
+  constructor(
+    private sessionService: SessionService,
+    private authService: AuthService,
+    private router: Router
+  ) {}
+
+  ngOnInit() {
+    this.initializeSessionTracking();
+    this.setupRouterEvents();
+  }
+
+  ngOnDestroy() {
+    this.subscriptions.unsubscribe();
+  }
+
+  private initializeSessionTracking() {
+    // Monitor session status changes
+    this.subscriptions.add(
+      this.sessionService.sessionTimeout$.subscribe(() => {
+        this.sessionStatus = this.sessionService.getSessionStatus();
+      })
+    );
+
+    // Start session tracking if user is authenticated
+    if (this.authService.isAuthenticated()) {
+      this.sessionService.startSessionTimer();
+    }
+  }
+
+  private setupRouterEvents() {
+    // Refresh session on route changes (user activity)
+    this.subscriptions.add(
+      this.router.events
+        .pipe(filter(event => event instanceof NavigationEnd))
+        .subscribe(() => {
+          if (this.authService.isAuthenticated()) {
+            this.sessionService.refreshSession();
+          }
+        })
+    );
+  }
+
+  private formatTime(milliseconds: number): string {
+    const totalSeconds = Math.ceil(milliseconds / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  }
+}
+
+// app.module.ts - Don't forget to add the modal component to declarations
+/*
+import { NgModule } from '@angular/core';
+import { BrowserModule } from '@angular/platform-browser';
+import { HttpClientModule } from '@angular/common/http';
+import { RouterModule } from '@angular/router';
+
+import { AppComponent } from './app.component';
+import { SessionWarningModalComponent } from './components/session-warning-modal.component';
+import { SessionService } from './services/session.service';
+import { SessionGuard } from './guards/session.guard';
+
+@NgModule({
+  declarations: [
+    AppComponent,
+    SessionWarningModalComponent,
+    // ... other components
+  ],
+  imports: [
+    BrowserModule,
+    HttpClientModule,
+    RouterModule.forRoot([
+      // Your routes with SessionGuard
+      {
+        path: 'protected',
+        component: YourProtectedComponent,
+        canActivate: [SessionGuard]
+      },
+      // ... other routes
+    ])
+  ],
+  providers: [
+    SessionService,
+    SessionGuard,
+    // ... other providers
+  ],
+  bootstrap: [AppComponent]
+})
+export class AppModule { }
+*/
+
+
