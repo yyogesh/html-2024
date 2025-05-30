@@ -52,11 +52,11 @@ class ClientPortalControllerTest {
     @DisplayName("Should create client portal successfully")
     void createClientPortal_Success() {
         // Given
-        when(clientPortalService.saveClientPortal(any(ClientPortalRequest.class)))
+        when(clientPortalService.saveClientPortal(clientPortalRequest))
                 .thenReturn(savedClientPortals);
 
         try (MockedStatic<ClientPortalMapper> mapperMock = Mockito.mockStatic(ClientPortalMapper.class)) {
-            mapperMock.when(() -> ClientPortalMapper.INSTANCE.toClientPortalResponseList(anyList()))
+            mapperMock.when(() -> ClientPortalMapper.INSTANCE.toClientPortalResponseList(savedClientPortals))
                     .thenReturn(clientPortalResponses);
 
             // When
@@ -83,11 +83,11 @@ class ClientPortalControllerTest {
         List<ClientPortal> emptyClientPortals = Collections.emptyList();
         List<ClientPortalResponse> emptyResponses = Collections.emptyList();
 
-        when(clientPortalService.saveClientPortal(any(ClientPortalRequest.class)))
+        when(clientPortalService.saveClientPortal(clientPortalRequest))
                 .thenReturn(emptyClientPortals);
 
         try (MockedStatic<ClientPortalMapper> mapperMock = Mockito.mockStatic(ClientPortalMapper.class)) {
-            mapperMock.when(() -> ClientPortalMapper.INSTANCE.toClientPortalResponseList(anyList()))
+            mapperMock.when(() -> ClientPortalMapper.INSTANCE.toClientPortalResponseList(emptyClientPortals))
                     .thenReturn(emptyResponses);
 
             // When
@@ -113,11 +113,11 @@ class ClientPortalControllerTest {
         List<ClientPortal> singleClientPortal = Arrays.asList(createClientPortal("1", "Client1"));
         List<ClientPortalResponse> singleResponse = Arrays.asList(createClientPortalResponse("1", "Client1"));
 
-        when(clientPortalService.saveClientPortal(any(ClientPortalRequest.class)))
+        when(clientPortalService.saveClientPortal(clientPortalRequest))
                 .thenReturn(singleClientPortal);
 
         try (MockedStatic<ClientPortalMapper> mapperMock = Mockito.mockStatic(ClientPortalMapper.class)) {
-            mapperMock.when(() -> ClientPortalMapper.INSTANCE.toClientPortalResponseList(anyList()))
+            mapperMock.when(() -> ClientPortalMapper.INSTANCE.toClientPortalResponseList(singleClientPortal))
                     .thenReturn(singleResponse);
 
             // When
@@ -141,7 +141,7 @@ class ClientPortalControllerTest {
     @DisplayName("Should propagate service exceptions")
     void createClientPortal_ServiceException() {
         // Given
-        when(clientPortalService.saveClientPortal(any(ClientPortalRequest.class)))
+        when(clientPortalService.saveClientPortal(clientPortalRequest))
                 .thenThrow(new RuntimeException("Service error"));
 
         // When & Then
@@ -156,23 +156,24 @@ class ClientPortalControllerTest {
     @DisplayName("Should handle null request gracefully")
     void createClientPortal_NullRequest() {
         // Given
-        when(clientPortalService.saveClientPortal(null))
+        ClientPortalRequest nullRequest = null;
+        when(clientPortalService.saveClientPortal(nullRequest))
                 .thenReturn(savedClientPortals);
 
         try (MockedStatic<ClientPortalMapper> mapperMock = Mockito.mockStatic(ClientPortalMapper.class)) {
-            mapperMock.when(() -> ClientPortalMapper.INSTANCE.toClientPortalResponseList(anyList()))
+            mapperMock.when(() -> ClientPortalMapper.INSTANCE.toClientPortalResponseList(savedClientPortals))
                     .thenReturn(clientPortalResponses);
 
             // When
             ResponseEntity<List<ClientPortalResponse>> response = 
-                clientPortalController.createClientPortal(null);
+                clientPortalController.createClientPortal(nullRequest);
 
             // Then
             assertNotNull(response);
             assertEquals(HttpStatus.CREATED, response.getStatusCode());
 
             // Verify interactions
-            verify(clientPortalService, times(1)).saveClientPortal(null);
+            verify(clientPortalService, times(1)).saveClientPortal(nullRequest);
         }
     }
 
@@ -183,11 +184,11 @@ class ClientPortalControllerTest {
         ClientPortalRequest requestWithSpecificId = createClientPortalRequest();
         requestWithSpecificId.setClientID("TEST-123");
 
-        when(clientPortalService.saveClientPortal(any(ClientPortalRequest.class)))
+        when(clientPortalService.saveClientPortal(requestWithSpecificId))
                 .thenReturn(savedClientPortals);
 
         try (MockedStatic<ClientPortalMapper> mapperMock = Mockito.mockStatic(ClientPortalMapper.class)) {
-            mapperMock.when(() -> ClientPortalMapper.INSTANCE.toClientPortalResponseList(anyList()))
+            mapperMock.when(() -> ClientPortalMapper.INSTANCE.toClientPortalResponseList(savedClientPortals))
                     .thenReturn(clientPortalResponses);
 
             // When
