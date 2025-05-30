@@ -22,8 +22,6 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -80,10 +78,11 @@ class ClientPortalControllerTest {
     @DisplayName("Should handle empty client portal list")
     void createClientPortal_EmptyList() {
         // Given
+        ClientPortalRequest emptyRequest = createClientPortalRequest();
         List<ClientPortal> emptyClientPortals = Collections.emptyList();
         List<ClientPortalResponse> emptyResponses = Collections.emptyList();
 
-        when(clientPortalService.saveClientPortal(clientPortalRequest))
+        when(clientPortalService.saveClientPortal(emptyRequest))
                 .thenReturn(emptyClientPortals);
 
         try (MockedStatic<ClientPortalMapper> mapperMock = Mockito.mockStatic(ClientPortalMapper.class)) {
@@ -92,7 +91,7 @@ class ClientPortalControllerTest {
 
             // When
             ResponseEntity<List<ClientPortalResponse>> response = 
-                clientPortalController.createClientPortal(clientPortalRequest);
+                clientPortalController.createClientPortal(emptyRequest);
 
             // Then
             assertNotNull(response);
@@ -101,7 +100,7 @@ class ClientPortalControllerTest {
             assertTrue(response.getBody().isEmpty());
 
             // Verify interactions
-            verify(clientPortalService, times(1)).saveClientPortal(clientPortalRequest);
+            verify(clientPortalService, times(1)).saveClientPortal(emptyRequest);
             mapperMock.verify(() -> ClientPortalMapper.INSTANCE.toClientPortalResponseList(emptyClientPortals), times(1));
         }
     }
@@ -110,10 +109,11 @@ class ClientPortalControllerTest {
     @DisplayName("Should handle single client portal")
     void createClientPortal_SinglePortal() {
         // Given
+        ClientPortalRequest singleRequest = createClientPortalRequest();
         List<ClientPortal> singleClientPortal = Arrays.asList(createClientPortal("1", "Client1"));
         List<ClientPortalResponse> singleResponse = Arrays.asList(createClientPortalResponse("1", "Client1"));
 
-        when(clientPortalService.saveClientPortal(clientPortalRequest))
+        when(clientPortalService.saveClientPortal(singleRequest))
                 .thenReturn(singleClientPortal);
 
         try (MockedStatic<ClientPortalMapper> mapperMock = Mockito.mockStatic(ClientPortalMapper.class)) {
@@ -122,7 +122,7 @@ class ClientPortalControllerTest {
 
             // When
             ResponseEntity<List<ClientPortalResponse>> response = 
-                clientPortalController.createClientPortal(clientPortalRequest);
+                clientPortalController.createClientPortal(singleRequest);
 
             // Then
             assertNotNull(response);
@@ -132,7 +132,7 @@ class ClientPortalControllerTest {
             assertEquals("1", response.getBody().get(0).getClientID());
 
             // Verify interactions
-            verify(clientPortalService, times(1)).saveClientPortal(clientPortalRequest);
+            verify(clientPortalService, times(1)).saveClientPortal(singleRequest);
             mapperMock.verify(() -> ClientPortalMapper.INSTANCE.toClientPortalResponseList(singleClientPortal), times(1));
         }
     }
@@ -141,15 +141,16 @@ class ClientPortalControllerTest {
     @DisplayName("Should propagate service exceptions")
     void createClientPortal_ServiceException() {
         // Given
-        when(clientPortalService.saveClientPortal(clientPortalRequest))
+        ClientPortalRequest errorRequest = createClientPortalRequest();
+        when(clientPortalService.saveClientPortal(errorRequest))
                 .thenThrow(new RuntimeException("Service error"));
 
         // When & Then
         assertThrows(RuntimeException.class, () -> 
-            clientPortalController.createClientPortal(clientPortalRequest));
+            clientPortalController.createClientPortal(errorRequest));
 
         // Verify interactions
-        verify(clientPortalService, times(1)).saveClientPortal(clientPortalRequest);
+        verify(clientPortalService, times(1)).saveClientPortal(errorRequest);
     }
 
     @Test
