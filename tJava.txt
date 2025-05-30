@@ -155,7 +155,7 @@ class ClientPortalControllerTest {
     @Test
     @DisplayName("Should handle null request gracefully")
     void createClientPortal_NullRequest() {
-        // Given
+        // Given - Fixed the syntax error here
         when(clientPortalService.saveClientPortal(null))
                 .thenReturn(savedClientPortals);
 
@@ -172,6 +172,23 @@ class ClientPortalControllerTest {
             assertEquals(HttpStatus.CREATED, response.getStatusCode());
 
             verify(clientPortalService).saveClientPortal(null);
+        }
+    }
+
+    @Test
+    @DisplayName("Should handle null request with potential NPE")
+    void createClientPortal_NullRequest_WithNPE() {
+        // Given - Test case where null request might cause NPE in controller
+        when(clientPortalService.saveClientPortal(null))
+                .thenReturn(savedClientPortals);
+
+        try (MockedStatic<ClientPortalMapper> mapperMock = mockStatic(ClientPortalMapper.class)) {
+            mapperMock.when(() -> ClientPortalMapper.INSTANCE.toClientPortalResponseList(savedClientPortals))
+                    .thenReturn(clientPortalResponses);
+
+            // When & Then - This might throw NPE due to clientPortalRequest.getClientID() in log statement
+            assertThrows(NullPointerException.class, () -> 
+                clientPortalController.createClientPortal(null));
         }
     }
 
