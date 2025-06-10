@@ -1,0 +1,412 @@
+import { SuitabilityCompose } from '../suitability.compose';
+import { SuitabilityService } from '../services/suitability.service';
+import { FensService } from '../services/fens.service';
+import { AppManager } from '../helpers/app-manager';
+import { NotEligibleError } from '../common/noteligible.error';
+import { BadRequestError, BackendResponseError } from '@fmr-ap145842/error-model';
+import type { SuitabilityDetail, AccountDetail } from '../models/suitability.model';
+import type { FilteredAcctDetails } from '../models/account.model';
+
+// Mock the dependencies
+jest.mock('../services/suitability.service');
+jest.mock('../services/fens.service');
+jest.mock('../helpers/app-manager');
+jest.mock('../../config/app.config', () => ({
+  appConfig: {
+    server: {
+      suitability: {
+        bulkUpdateSize: 2,
+        noProfileErrorCode: 'NO_PROFILE_FOUND',
+        invstKnowledge: ['EXTENSIVE', 'GOOD', 'LIMITED', 'NONE']
+      }
+    }
+  }
+}));
+
+describe('SuitabilityCompose', () => {
+  let suitabilityCompose: SuitabilityCompose;
+  let mockSuitabilityService: jest.Mocked<SuitabilityService>;
+  let mockFensService: jest.Mocked<FensService>;
+  let mockLogger: any;
+
+  const mockHeaders = { 'x-correlation-id': 'test-correlation-id' };
+  const mockAccounts: FilteredAcctDetails[] = [
+    { acctNum: 'ACC001', regType: 'IRA' },
+    { acctNum: 'ACC002', regType: 'TAXABLE' },
+    { acctNum: 'ACC003', regType: 'ROTH_IRA' }
+  ];
+
+  beforeEach(() => {
+    // Setup logger mock
+    mockLogger = {
+      info: jest.fn(),
+      error: jest.fn(),
+      warn: jest.fn()
+    };
+    (AppManager.getLogger as jest.Mock).mockReturnValue(mockLogger);
+
+    // Setup service mocks
+    mockSuitabilityService = {
+      updateSuitabilityInquiries: jest.fn()
+    } as any;
+
+    mockFensService = {
+      submit: jest.fn()
+    } as any;
+
+    (SuitabilityService as jest.Mock).mockImplementation(() => mockSuitabilityService);
+    (FensService as jest.Mock).mockImplementation(() => mockFensService);
+
+    suitabilityCompose = new SuitabilityCompose();
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('submitSuitabilityInquiries - No Profile Error Handling', () => {
+    it('should handle no profile error and retry with UNDECIDED investment objective', async () => {
+      // Arrange
+      const suitability: SuitabilityDetail = {
+        invstKnowledge: 'EXTENSIVE',
+        invstObjectives: [{ invstObjective: 'GROWTH' }]
+      };
+
+      // Mock first updateSuitabilityInquiries call to simulate the error
+      const firstCallError = new BackendResponseError('Update failed');
+      (firstCallError as any).status = 400;
+      (firstCallError as any).message = 'INVALID_INVESTMENT_OBJECTIVES - NO_PROFILE_FOUND error occurred';
+
+      // Mock second updateSuitabilityInquiries call to succeed
+      const secondCallSuccess = {
+        suitabilityUpdateDetails: [] // Empty array means no failed accounts
+      };
+
+      mockSuitabilityService.updateSuitabilityInquiries
+        .mockRejectedValueOnce(firstCallError)
+        .mockResolvedValueOnce(secondCallSuccess);
+
+      // Mock FENS service success
+      mockFensService.submit.mockResolvedValue({
+        trackingId: 'TRACK-12345'
+      });
+
+      // Mock the private method updateSuitabilityInquires
+      const updateSuitabilityInquiresSpy = jest.spyOn(suitabilityCompose as any, 'updateSuitabilityInquires');
+      
+      // First call returns error object with status 400 and specific message
+      const errorResponse = {
+        status: 400,
+        message: 'INVALID_INVESTMENT_OBJECTIVES - NO_PROFILE_FOUND for customer'
+      };
+
+      // Second call returns successful account details
+      const successResponse = [
+        { acctNum: 'ACC001', regType: 'IRA' },
+        { acctNum: 'ACC002', regType: 'TAXABLE' },
+        { acctNum: 'ACC003', regType: 'ROTH_IRA' }
+      ];
+
+      updateSuitabilityInquiresSpy
+        .mockResolvedValueOnce(errorResponse) // First call - error
+        .mockResolvedValueOnce(successResponse) // Second call - success after retry
+        .mockResolvedValueOnce(successResponse); // Additional calls for other chunks
+
+      // Act
+      const result = await suitabilityCompose.submitSuitabilityInquiries(
+        mockHeaders,
+        mockAccounts,
+        suitability
+      );
+
+      // Assert
+      expect(result).toEqual({
+        eligible: true,
+        trackingId: 'TRACK-12345'
+      });
+
+      // Verify suitability.invstObjectives was updated to UNDECIDED
+      expect(suitability.invstObjectives).toEqual([{
+        invstObjective: 'UNDECIDED'
+      }]);
+
+      // Verify updateSuitabilityInquires was called twice due to retry
+      expect(updateSuitabilityInquiresSpy).toHaveBeenCalledTimes(4); // 2 chunks * 2 calls (original + retry)
+
+      // Verify FENS submit was called with correct parameters
+      expect(mockFensService.submit).toHaveBeenCalledWith(
+        mockHeaders,
+        ['ACC001', 'ACC002', 'ACC003'],
+        ['IRA', 'TAXABLE', 'ROTH_IRA']
+      );
+
+      // Verify logging
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        mockHeaders,
+        expect.stringContaining('The request body of the suitability is')
+      );
+    });
+
+    it('should handle no profile error but return not eligible if retry still fails', async () => {
+      // Arrange
+      const suitability: SuitabilityDetail = {
+        invstKnowledge: 'EXTENSIVE',
+        invstObjectives: [{ invstObjective: 'GROWTH' }]
+      };
+
+      const errorResponse = {
+        status: 400,
+        message: 'INVALID_INVESTMENT_OBJECTIVES - NO_PROFILE_FOUND for customer'
+      };
+
+      // Mock updateSuitabilityInquires to return error for both original and retry
+      const updateSuitabilityInquiresSpy = jest.spyOn(suitabilityCompose as any, 'updateSuitabilityInquires');
+      updateSuitabilityInquiresSpy
+        .mockResolvedValue(errorResponse); // Always return error
+
+      // Act
+      const result = await suitabilityCompose.submitSuitabilityInquiries(
+        mockHeaders,
+        mockAccounts,
+        suitability
+      );
+
+      // Assert
+      expect(result).toEqual({
+        eligible: false
+      });
+
+      // Verify suitability.invstObjectives was still updated to UNDECIDED
+      expect(suitability.invstObjectives).toEqual([{
+        invstObjective: 'UNDECIDED'
+      }]);
+
+      // Verify retry happened (original call + retry call for each chunk)
+      expect(updateSuitabilityInquiresSpy).toHaveBeenCalledTimes(4); // 2 chunks * 2 calls
+
+      // Verify not eligible logging
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        mockHeaders,
+        expect.stringContaining('Not eligible. The number of the succeed accounts is 0')
+      );
+    });
+
+    it('should not retry if error status is not 400', async () => {
+      // Arrange
+      const suitability: SuitabilityDetail = {
+        invstKnowledge: 'EXTENSIVE',
+        invstObjectives: [{ invstObjective: 'GROWTH' }]
+      };
+
+      const errorResponse = {
+        status: 500, // Different status code
+        message: 'INVALID_INVESTMENT_OBJECTIVES - NO_PROFILE_FOUND for customer'
+      };
+
+      const updateSuitabilityInquiresSpy = jest.spyOn(suitabilityCompose as any, 'updateSuitabilityInquires');
+      updateSuitabilityInquiresSpy.mockResolvedValue(errorResponse);
+
+      // Act
+      const result = await suitabilityCompose.submitSuitabilityInquiries(
+        mockHeaders,
+        mockAccounts,
+        suitability
+      );
+
+      // Assert
+      expect(result).toEqual({
+        eligible: false
+      });
+
+      // Verify suitability.invstObjectives was NOT modified
+      expect(suitability.invstObjectives).toEqual([{
+        invstObjective: 'GROWTH'
+      }]);
+
+      // Verify no retry happened (only original calls)
+      expect(updateSuitabilityInquiresSpy).toHaveBeenCalledTimes(2); // Only 2 chunks, no retry
+    });
+
+    it('should not retry if error message does not contain INVALID_INVESTMENT_OBJECTIVES', async () => {
+      // Arrange
+      const suitability: SuitabilityDetail = {
+        invstKnowledge: 'EXTENSIVE',
+        invstObjectives: [{ invstObjective: 'GROWTH' }]
+      };
+
+      const errorResponse = {
+        status: 400,
+        message: 'SOME_OTHER_ERROR - NO_PROFILE_FOUND for customer'
+      };
+
+      const updateSuitabilityInquiresSpy = jest.spyOn(suitabilityCompose as any, 'updateSuitabilityInquires');
+      updateSuitabilityInquiresSpy.mockResolvedValue(errorResponse);
+
+      // Act
+      const result = await suitabilityCompose.submitSuitabilityInquiries(
+        mockHeaders,
+        mockAccounts,
+        suitability
+      );
+
+      // Assert
+      expect(result).toEqual({
+        eligible: false
+      });
+
+      // Verify suitability.invstObjectives was NOT modified
+      expect(suitability.invstObjectives).toEqual([{
+        invstObjective: 'GROWTH'
+      }]);
+
+      // Verify no retry happened
+      expect(updateSuitabilityInquiresSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it('should not retry if error message does not contain noProfileErrorCode', async () => {
+      // Arrange
+      const suitability: SuitabilityDetail = {
+        invstKnowledge: 'EXTENSIVE',
+        invstObjectives: [{ invstObjective: 'GROWTH' }]
+      };
+
+      const errorResponse = {
+        status: 400,
+        message: 'INVALID_INVESTMENT_OBJECTIVES - DIFFERENT_ERROR for customer'
+      };
+
+      const updateSuitabilityInquiresSpy = jest.spyOn(suitabilityCompose as any, 'updateSuitabilityInquires');
+      updateSuitabilityInquiresSpy.mockResolvedValue(errorResponse);
+
+      // Act
+      const result = await suitabilityCompose.submitSuitabilityInquiries(
+        mockHeaders,
+        mockAccounts,
+        suitability
+      );
+
+      // Assert
+      expect(result).toEqual({
+        eligible: false
+      });
+
+      // Verify suitability.invstObjectives was NOT modified
+      expect(suitability.invstObjectives).toEqual([{
+        invstObjective: 'GROWTH'
+      }]);
+
+      // Verify no retry happened
+      expect(updateSuitabilityInquiresSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it('should handle successful first attempt without triggering retry logic', async () => {
+      // Arrange
+      const suitability: SuitabilityDetail = {
+        invstKnowledge: 'EXTENSIVE',
+        invstObjectives: [{ invstObjective: 'GROWTH' }]
+      };
+
+      const successResponse = [
+        { acctNum: 'ACC001', regType: 'IRA' },
+        { acctNum: 'ACC002', regType: 'TAXABLE' },
+        { acctNum: 'ACC003', regType: 'ROTH_IRA' }
+      ];
+
+      const updateSuitabilityInquiresSpy = jest.spyOn(suitabilityCompose as any, 'updateSuitabilityInquires');
+      updateSuitabilityInquiresSpy.mockResolvedValue(successResponse);
+
+      mockFensService.submit.mockResolvedValue({
+        trackingId: 'TRACK-SUCCESS'
+      });
+
+      // Act
+      const result = await suitabilityCompose.submitSuitabilityInquiries(
+        mockHeaders,
+        mockAccounts,
+        suitability
+      );
+
+      // Assert
+      expect(result).toEqual({
+        eligible: true,
+        trackingId: 'TRACK-SUCCESS'
+      });
+
+      // Verify suitability.invstObjectives was NOT modified
+      expect(suitability.invstObjectives).toEqual([{
+        invstObjective: 'GROWTH'
+      }]);
+
+      // Verify no retry happened (only original calls for chunks)
+      expect(updateSuitabilityInquiresSpy).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('Additional test cases for edge cases', () => {
+    it('should throw NotEligibleError when no accounts provided', async () => {
+      const suitability: SuitabilityDetail = {
+        invstKnowledge: 'EXTENSIVE',
+        invstObjectives: [{ invstObjective: 'GROWTH' }]
+      };
+
+      const result = await suitabilityCompose.submitSuitabilityInquiries(
+        mockHeaders,
+        [], // Empty accounts array
+        suitability
+      );
+
+      expect(result).toEqual({
+        eligible: false
+      });
+
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        mockHeaders,
+        'Not eligible. The number of the accounts is 0.'
+      );
+    });
+
+    it('should throw BadRequestError when invstKnowledge is missing', async () => {
+      const suitability: SuitabilityDetail = {
+        invstKnowledge: undefined as any,
+        invstObjectives: [{ invstObjective: 'GROWTH' }]
+      };
+
+      await expect(
+        suitabilityCompose.submitSuitabilityInquiries(
+          mockHeaders,
+          mockAccounts,
+          suitability
+        )
+      ).rejects.toThrow(BadRequestError);
+    });
+
+    it('should handle FENS service error', async () => {
+      const suitability: SuitabilityDetail = {
+        invstKnowledge: 'EXTENSIVE',
+        invstObjectives: [{ invstObjective: 'GROWTH' }]
+      };
+
+      const successResponse = [
+        { acctNum: 'ACC001', regType: 'IRA' },
+        { acctNum: 'ACC002', regType: 'TAXABLE' },
+        { acctNum: 'ACC003', regType: 'ROTH_IRA' }
+      ];
+
+      const updateSuitabilityInquiresSpy = jest.spyOn(suitabilityCompose as any, 'updateSuitabilityInquires');
+      updateSuitabilityInquiresSpy.mockResolvedValue(successResponse);
+
+      // Mock FENS service to return undefined trackingId
+      mockFensService.submit.mockResolvedValue({
+        trackingId: undefined
+      });
+
+      await expect(
+        suitabilityCompose.submitSuitabilityInquiries(
+          mockHeaders,
+          mockAccounts,
+          suitability
+        )
+      ).rejects.toThrow(BackendResponseError);
+    });
+  });
+});
