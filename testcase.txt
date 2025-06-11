@@ -72,45 +72,41 @@ describe('SuitabilityCompose', () => {
         invstObjectives: [{ invstObjective: 'GROWTH' }]
       };
 
-      // Mock first updateSuitabilityInquiries call to simulate the error
-      const firstCallError = new BackendResponseError('Update failed');
-      (firstCallError as any).status = 400;
-      (firstCallError as any).message = 'INVALID_INVESTMENT_OBJECTIVES - NO_PROFILE_FOUND error occurred';
-
-      // Mock second updateSuitabilityInquiries call to succeed
-      const secondCallSuccess = {
-        suitabilityUpdateDetails: [] // Empty array means no failed accounts
+      // Mock the private method updateSuitabilityInquires to simulate the exact flow
+      const updateSuitabilityInquiresSpy = jest.spyOn(suitabilityCompose as any, 'updateSuitabilityInquires');
+      
+      // First Promise.all() call - First chunk returns error, second chunk returns success
+      const errorResponse = {
+        status: 400,
+        message: 'INVALID_INVESTMENT_OBJECTIVES - NO_PROFILE_FOUND for customer'
       };
+      
+      const partialSuccessResponse = [
+        { acctNum: 'ACC003', regType: 'ROTH_IRA' }
+      ];
 
-      mockSuitabilityService.updateSuitabilityInquiries
-        .mockRejectedValueOnce(firstCallError)
-        .mockResolvedValueOnce(secondCallSuccess);
+      // Mock first Promise.all() calls (original attempt)
+      updateSuitabilityInquiresSpy
+        .mockResolvedValueOnce(errorResponse) // First chunk - error
+        .mockResolvedValueOnce(partialSuccessResponse); // Second chunk - success
+
+      // Mock second Promise.all() calls (retry after UNDECIDED)
+      const retrySuccessResponse1 = [
+        { acctNum: 'ACC001', regType: 'IRA' },
+        { acctNum: 'ACC002', regType: 'TAXABLE' }
+      ];
+      const retrySuccessResponse2 = [
+        { acctNum: 'ACC003', regType: 'ROTH_IRA' }
+      ];
+
+      updateSuitabilityInquiresSpy
+        .mockResolvedValueOnce(retrySuccessResponse1) // First chunk retry - success
+        .mockResolvedValueOnce(retrySuccessResponse2); // Second chunk retry - success
 
       // Mock FENS service success
       mockFensService.submit.mockResolvedValue({
         trackingId: 'TRACK-12345'
       });
-
-      // Mock the private method updateSuitabilityInquires
-      const updateSuitabilityInquiresSpy = jest.spyOn(suitabilityCompose as any, 'updateSuitabilityInquires');
-      
-      // First call returns error object with status 400 and specific message
-      const errorResponse = {
-        status: 400,
-        message: 'INVALID_INVESTMENT_OBJECTIVES - NO_PROFILE_FOUND for customer'
-      };
-
-      // Second call returns successful account details
-      const successResponse = [
-        { acctNum: 'ACC001', regType: 'IRA' },
-        { acctNum: 'ACC002', regType: 'TAXABLE' },
-        { acctNum: 'ACC003', regType: 'ROTH_IRA' }
-      ];
-
-      updateSuitabilityInquiresSpy
-        .mockResolvedValueOnce(errorResponse) // First call - error
-        .mockResolvedValueOnce(successResponse) // Second call - success after retry
-        .mockResolvedValueOnce(successResponse); // Additional calls for other chunks
 
       // Act
       const result = await suitabilityCompose.submitSuitabilityInquiries(
@@ -130,8 +126,19 @@ describe('SuitabilityCompose', () => {
         invstObjective: 'UNDECIDED'
       }]);
 
-      // Verify updateSuitabilityInquires was called twice due to retry
-      expect(updateSuitabilityInquiresSpy).toHaveBeenCalledTimes(4); // 2 chunks * 2 calls (original + retry)
+      // Verify updateSuitabilityInquires was called 4 times (2 chunks * 2 attempts)
+      expect(updateSuitabilityInquiresSpy).toHaveBeenCalledTimes(4);
+
+      // Verify the second call to updateSuitabilityInquires uses the modified suitability with UNDECIDED
+      expect(updateSuitabilityInquiresSpy).toHaveBeenNthCalledWith(
+        3, // Third call (first retry call)
+        mockHeaders,
+        expect.any(Array),
+        expect.objectContaining({
+          invstKnowledge: 'EXTENSIVE',
+          invstObjectives: [{ invstObjective: 'UNDECIDED' }]
+        })
+      );
 
       // Verify FENS submit was called with correct parameters
       expect(mockFensService.submit).toHaveBeenCalledWith(
