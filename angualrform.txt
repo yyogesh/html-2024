@@ -1,0 +1,300 @@
+import { Component, OnInit } from '@angular/core';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { MatSelectModule } from '@angular/material/select';
+import { MatInputModule } from '@angular/material/input';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatButtonModule } from '@angular/material/button';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { ReactiveFormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
+
+@Component({
+  selector: 'app-pricing-form',
+  standalone: true,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    MatButtonModule,
+    MatSlideToggleModule,
+    MatAutocompleteModule
+  ],
+  template: `
+    <div class="pricing-container">
+      <h1 class="up-font-h6">Pricing</h1>
+      
+      <form [formGroup]="pricingForm" (ngSubmit)="onSubmit()">
+        <div class="mdc-layout-grid_inner results-form-inner">
+          
+          <!-- Search Section -->
+          <div class="mdc-layout-grid_cell--span-12-desktop mdc-layout-grid_cell--span-12-tablet mdc-layout-grid_cell--span-12-phone grid-count">
+            <div class="search-section">
+              <h3>Search</h3>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Recent searches</mat-label>
+                <mat-select formControlName="recentSearch">
+                  <mat-option value="">Recent searches</mat-option>
+                  <mat-option value="search1">Previous Search 1</mat-option>
+                  <mat-option value="search2">Previous Search 2</mat-option>
+                </mat-select>
+              </mat-form-field>
+            </div>
+          </div>
+
+          <!-- Shipment Details Section -->
+          <div class="mdc-layout-grid_cell--span-12-desktop mdc-layout-grid_cell--span-12-tablet mdc-layout-grid_cell--span-12-phone grid-count">
+            <div class="shipment-section">
+              <h3>Shipment details</h3>
+              
+              <!-- Commodity Field -->
+              <mat-form-field appearance="outline" class="full-width" [class.mat-form-field-invalid]="pricingForm.get('commodity')?.invalid && pricingForm.get('commodity')?.touched">
+                <mat-label>Commodity</mat-label>
+                <input matInput formControlName="commodity" placeholder="Commodity">
+                <mat-error *ngIf="pricingForm.get('commodity')?.hasError('required')">
+                  ERROR_COLUMN_DEFINITION_GROUP_SOURCE_REQUIRED
+                </mat-error>
+              </mat-form-field>
+
+              <!-- Origin Field -->
+              <div class="form-row">
+                <mat-form-field appearance="outline" class="origin-field" [class.mat-form-field-invalid]="pricingForm.get('origin')?.invalid && pricingForm.get('origin')?.touched">
+                  <mat-label>Origin</mat-label>
+                  <input matInput formControlName="origin" placeholder="Origin">
+                  <mat-error *ngIf="pricingForm.get('origin')?.hasError('required')">
+                    *Required
+                  </mat-error>
+                </mat-form-field>
+                
+                <mat-form-field appearance="outline" class="carrier-field">
+                  <mat-label>Origin carrier</mat-label>
+                  <mat-select formControlName="originCarrier">
+                    <mat-option value="all">All</mat-option>
+                    <mat-option value="carrier1">Carrier 1</mat-option>
+                    <mat-option value="carrier2">Carrier 2</mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <!-- Destination Field -->
+              <div class="form-row">
+                <mat-form-field appearance="outline" class="destination-field" [class.mat-form-field-invalid]="pricingForm.get('destination')?.invalid && pricingForm.get('destination')?.touched">
+                  <mat-label>Destination</mat-label>
+                  <input matInput formControlName="destination" placeholder="Destination">
+                  <mat-error *ngIf="pricingForm.get('destination')?.hasError('required')">
+                    *Required
+                  </mat-error>
+                </mat-form-field>
+                
+                <mat-form-field appearance="outline" class="carrier-field">
+                  <mat-label>Destination carrier</mat-label>
+                  <mat-select formControlName="destinationCarrier">
+                    <mat-option value="all">All</mat-option>
+                    <mat-option value="carrier1">Carrier 1</mat-option>
+                    <mat-option value="carrier2">Carrier 2</mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <!-- Equipment Field -->
+              <div class="form-row">
+                <mat-form-field appearance="outline" class="equipment-field">
+                  <mat-label>Equipment</mat-label>
+                  <mat-select formControlName="equipment">
+                    <mat-option value="">Select Equipment</mat-option>
+                    <mat-option value="container">Container</mat-option>
+                    <mat-option value="truck">Truck</mat-option>
+                    <mat-option value="rail">Rail</mat-option>
+                  </mat-select>
+                </mat-form-field>
+                
+                <mat-form-field appearance="outline" class="ownership-field">
+                  <mat-label>Equipment ownership</mat-label>
+                  <mat-select formControlName="equipmentOwnership">
+                    <mat-option value="all">All</mat-option>
+                    <mat-option value="owned">Owned</mat-option>
+                    <mat-option value="leased">Leased</mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <!-- Advanced Search Toggle -->
+              <div class="advanced-search-row">
+                <mat-slide-toggle formControlName="advancedSearch">
+                  Advanced search
+                </mat-slide-toggle>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="button-row">
+                <button mat-raised-button color="primary" type="submit" [disabled]="pricingForm.invalid">
+                  SEARCH
+                </button>
+                <button mat-stroked-button type="button" (click)="addAnother()">
+                  ADD ANOTHER
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  `,
+  styles: [`
+    .pricing-container {
+      padding: 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .up-font-h6 {
+      font-size: 1.5rem;
+      font-weight: 500;
+      margin-bottom: 24px;
+      color: #333;
+    }
+
+    .search-section,
+    .shipment-section {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+
+    .search-section h3,
+    .shipment-section h3 {
+      margin: 0 0 16px 0;
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: #555;
+    }
+
+    .full-width {
+      width: 100%;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 16px;
+      align-items: flex-start;
+    }
+
+    .origin-field,
+    .destination-field,
+    .equipment-field {
+      flex: 2;
+    }
+
+    .carrier-field,
+    .ownership-field {
+      flex: 1;
+    }
+
+    .advanced-search-row {
+      margin: 20px 0;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .mat-mdc-raised-button {
+      background-color: #1976d2;
+      color: white;
+    }
+
+    .mat-mdc-stroked-button {
+      border: 1px solid #1976d2;
+      color: #1976d2;
+    }
+
+    .mat-mdc-form-field {
+      margin-bottom: 16px;
+    }
+
+    .mat-form-field-invalid .mat-mdc-text-field-wrapper {
+      border-color: #f44336;
+    }
+
+    .mat-mdc-form-field-error {
+      font-size: 12px;
+      color: #f44336;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .form-row {
+        flex-direction: column;
+        gap: 8px;
+      }
+      
+      .origin-field,
+      .destination-field,
+      .equipment-field,
+      .carrier-field,
+      .ownership-field {
+        flex: 1;
+        width: 100%;
+      }
+
+      .button-row {
+        flex-direction: column;
+      }
+    }
+
+    /* MDC Layout Grid Override */
+    .mdc-layout-grid_inner {
+      padding: 0;
+    }
+
+    .results-form-inner {
+      margin: 0;
+    }
+
+    .grid-count {
+      padding: 8px;
+    }
+  `]
+})
+export class PricingFormComponent implements OnInit {
+  pricingForm: FormGroup;
+
+  constructor(private fb: FormBuilder) {
+    this.pricingForm = this.fb.group({
+      recentSearch: [''],
+      commodity: ['', Validators.required],
+      origin: ['', Validators.required],
+      originCarrier: ['all'],
+      destination: ['', Validators.required],
+      destinationCarrier: ['all'],
+      equipment: [''],
+      equipmentOwnership: ['all'],
+      advancedSearch: [false]
+    });
+  }
+
+  ngOnInit(): void {
+    // Initialize form or load data if needed
+  }
+
+  onSubmit(): void {
+    if (this.pricingForm.valid) {
+      console.log('Form submitted:', this.pricingForm.value);
+      // Handle form submission logic here
+    } else {
+      // Mark all fields as touched to show validation errors
+      this.pricingForm.markAllAsTouched();
+    }
+  }
+
+  addAnother(): void {
+    // Logic to add another search or form
+    console.log('Add another clicked');
+  }
+}
