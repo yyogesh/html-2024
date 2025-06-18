@@ -1,0 +1,140 @@
+/*****************************************************************************************************
+Object: StoredProcedure [dbo].[GetAgentAffiliationStatusHistory]    Script Date: 6/18/2025 10:11:00 PM 
+*****************************************************************************************************/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+----------------------------------------------------------
+CREATE PROCEDURE [dbo].[GetAgentAffiliationStatusHistory]
+(
+    @agentNbr VARCHAR(50) = NULL        --The agent number of the agent
+)
+AS
+BEGIN
+    -- SET NOCOUNT ON added to prevent extra result sets from
+    -- interfering with SELECT statements.
+    SET NOCOUNT ON;
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
+    BEGIN TRY
+
+        DECLARE @Days INT = NULL; --number of days
+        DECLARE @DefaultSearchExclStatus VARCHAR(175) = NULL; --default screen exclude statuses
+        --get config values from code table,we can even adjust this config as per DEV CR or Environment
+        SET @Days = (SELECT CAST(CodeDescription as INT) FROM CODELKUP WHERE CodeValue='AffiliationDefaultScreenDays'); --GetDataAffiliations default screen search days as 8 days
+        SET @DefaultSearchExclStatus = (SELECT CodeDescription FROM CODELKUP WHERE CodeValue='AffiliationDefaultScreenExclStat'); --'DOI ADDED,DOI Termed,DOI Termed Added,No Action Needed' --GetDataAffiliations default screen search excluded statuses
+
+        IF @DefaultSearchExclStatus IS NULL --only searchExclStatus=1 is passed then we need to retrive records older than 8 days and exclude ''DOI Added', 'DOI Termed','DOI Termed Added','No Action Needed'' status
+            SET @DefaultSearchExclStatus = ''; --not a Default search if passed as null by UI/API
+
+        -- Convert input parameters into table variables for processing.
+        
+        -- States
+        DECLARE @STATE_TABLE AS TABLE ((STATE_CD) VARCHAR(MAX));
+        INSERT INTO @STATE_TABLE ((STATE_CD))
+        SELECT [Data] FROM dbo.SplitString(@States, ',');
+
+        -- Status descriptions
+        DECLARE @AFF_STATUS_TABLE AS TABLE ((status) VARCHAR(MAX));
+        INSERT INTO @AFF_STATUS_TABLE ((status))
+        SELECT [Data] FROM dbo.SplitString(@status, ',');
+
+        -- Convert status descriptions to codes
+        DECLARE @AFF_STATUS_CODE_TABLE AS TABLE ((status_cd) VARCHAR(MAX));
+        INSERT INTO @AFF_STATUS_CODE_TABLE ((status_cd))
+        SELECT CodeValue
+        FROM [dbo].[CODE] (NOLOCK)
+        WHERE GroupCode = 18 AND IsActive = 1
+        AND CodeDescription IN (SELECT [status] FROM @AFF_STATUS_TABLE);
+
+        DECLARE @agentSANInt BIGINT;
+        DECLARE @nprInt BIGINT;
+        SET @agentSANInt = CAST(ISNULL(@agentSAN, 0) AS BIGINT); -- Avoid casting in WHERE clause.
+        SET @nprInt = CAST(ISNULL(@npr, 0) AS BIGINT); -- Avoid casting in WHERE clause.
+
+        --To avoid scanning multiple tables all at once, splited into multiple queries to have better performance
+        --SQL/Please ensure that any modifications made to Change Request (CR) logic are accompanied by the appropriate adjustments to all related cases and IF statements. It is crucial that these changes are implemented consistently across the board to maintain the integrity of our processes
+
+        IF (@agentNbr IS NOT NULL) --Global search based on agent number
+        --first filter required search parameter records and then derive other table data attributes
+        SELECT
+            STG.AGENT_NBR as AgentSAN,
+            STG.AGENT_NPN_ID as AgentNPN,
+            STG.LICENSE_NBR as LicenseNumber,
+            STG.AGENT_NAME as AgentName,
+            SUBSTRING(SAN.AGENT_TAX_ID, LEN(SAN.AGENT_TAX_ID) -3, 4) as lastFourDigitssSSN,
+            STG.LicenseState,
+            RefState.STATE_NAME as LicenseState,
+            AFSH.COMMENTS as Comments,
+            RefStatus.CodeDescription as AffiliationStatus,
+            RefStatus.CodeValue as StatusCd,
+            SAN.FIRST_NAME + ' ' + SAN.FIRST_NAME AS AssignedTo,
+            AFSH.REASON_CD as ReasonCd,
+            AFSH.STATUS_DATE as StatusDate,
+            AFSH.AGENT_AFFILIATION_STATUS_HIST_ID,
+            AFSH.AGENT_AFFILIATION_STATE_ID,
+            AFSH.DOI_AFFILIATION_STATUS_CD,
+            AFSH.DOI_AFFILIATION_WORK_STATE_CD,
+            AFSH.STORM_USER_KEY,
+            AFSH.ACTIVE_IND,
+            AFSH.ACTION_TIMESTAMP
+
+        FROM
+        (
+            SELECT AFS.AGENT_AFFILIATION_STATE_ID,
+                AFS.AGENT_NBR,
+                AFS.STATE_CD,
+                AFS.LICENSE_NBR,
+                RefState.STATE_NAME as LicenseState
+            FROM [dbo].[AGENT_AFFILIATION_STATE] (NOLOCK) AFS
+            INNER JOIN [dbo].[AFFILIATION_STATE_STATUS_LKUP] (NOLOCK) RefState
+                ON RefState.STATE_CD = AFS.STATE_CD --get state name from state codes--license state
+            WHERE
+            (
+                (AFS.STATE_CD IN (SELECT [STATE_CD] FROM @STATE_TABLE))
+            )
+        ) STG
+        INNER JOIN [dbo].[AGENT_AFFILIATION_STATUS_HIST] (NOLOCK) AFSH
+            ON AFSH.AGENT_AFFILIATION_STATE_ID = STG.AGENT_AFFILIATION_STATE_ID 
+            AND AFSH.ACTIVE_IND = 1 --from status tracking history get latest record/status
+        INNER JOIN [dbo].[AGENT] (NOLOCK) AGT
+            ON AGT.AGENT_NBR = STG.AGENT_NBR
+        LEFT JOIN [dbo].[SALES_AGENT_HIERARCHY] (NOLOCK) SAH
+            ON SAH.AGENT_NBR = STG.AGENT_NBR AND SAH.PAYEE_TYPE_CD = 'MA' --Filtering on many agent_payee_type
+        LEFT JOIN [dbo].[STORM_AFFL_USERS] (NOLOCK) SAU
+            ON SAU.STORM_USER_KEY = AFSH.STORM_USER_KEY --get username from user key
+        LEFT JOIN (SELECT CodeValue,CodeDescription FROM [dbo].[CODE] (NOLOCK) WHERE GroupCode=18 AND IsActive=1) RefStatus
+            ON RefStatus.CodeValue=AFSH.STATUS_CD --get status values from codes
+        LEFT JOIN [dbo].[AFFILIATION_STATE_STATUS_LKUP] (NOLOCK) RefState
+            ON RefState.STATE_CD =AFSH.DOI_AFFILIATION_WORK_STATE_CD --get state name from state codes--work state
+        WHERE
+        (
+            (@agentNbr IS NOT NULL AND AGT.AGENT_NBR = @agentNbr)
+        )
+        ORDER BY 
+            STG.STATE_CD,
+            AFSH.STATUS_DATE DESC,
+            AFSH.AGENT_AFFILIATION_STATUS_HIST_ID DESC;
+
+    END TRY
+    BEGIN CATCH
+        DECLARE @ErrorMessage NVARCHAR(4000);
+        DECLARE @ErrorSeverity INT;
+        DECLARE @ErrorState INT;
+
+        SELECT
+            @ErrorMessage = ERROR_MESSAGE(),
+            @ErrorSeverity = ERROR_SEVERITY(),
+            @ErrorState = ERROR_STATE();
+
+        -- Use RAISERROR inside the CATCH block to return error
+        -- information about the original error that caused
+        -- execution to jump to the CATCH block.
+        RAISERROR (@ErrorMessage, -- Message text.
+            @ErrorSeverity, -- Severity.
+            @ErrorState -- State.
+        );
+    END CATCH
+
+END
