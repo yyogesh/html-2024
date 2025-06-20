@@ -1,0 +1,384 @@
+npm install @microsoft/applicationinsights-web
+
+
+appInsights: {
+     instrumentationKey: 'your-instrumentation-key-here'
+    // Alternative: use instrumentationKey
+    // instrumentationKey: 'your-instrumentation-key-here'
+  }
+
+
+import { Injectable } from '@angular/core';
+import { ApplicationInsights } from '@microsoft/applicationinsights-web';
+import { environment } from '../environments/environment';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class ApplicationInsightsService {
+  private appInsights: ApplicationInsights;
+
+  constructor() {
+    this.appInsights = new ApplicationInsights({
+      config: {
+        instrumentationKey: environment.appInsights.instrumentationKey,
+       
+        enableAutoRouteTracking: true, // Automatically track route changes
+        enableRequestHeaderTracking: true,
+        enableResponseHeaderTracking: true,
+        enableCorsCorrelation: true,
+        enableDebug: false, // Set to true for development
+        loggingLevelConsole: 1, // 0=OFF, 1=CRITICAL, 2=ERROR
+        autoTrackPageVisitTime: true,
+        disableAjaxTracking: false,
+        disableFetchTracking: false,
+      }
+    });
+    
+    this.appInsights.loadAppInsights();
+    this.appInsights.trackPageView(); // Initial page view
+  }
+
+  // Track custom events
+  trackEvent(name: string, properties?: { [key: string]: any }, measurements?: { [key: string]: number }) {
+    this.appInsights.trackEvent({ name }, properties, measurements);
+  }
+
+  // Track function results/custom metrics
+  trackMetric(name: string, average: number, properties?: { [key: string]: any }) {
+    this.appInsights.trackMetric({ name, average }, properties);
+  }
+
+  // Track exceptions/errors
+  trackException(exception: Error, properties?: { [key: string]: any }) {
+    this.appInsights.trackException({ exception }, properties);
+  }
+
+  // Track custom traces/logs
+  trackTrace(message: string, severityLevel?: number, properties?: { [key: string]: any }) {
+    this.appInsights.trackTrace({ message, severityLevel }, properties);
+  }
+
+  // Track dependencies (API calls, etc.)
+  trackDependency(id: string, method: string, absoluteUrl: string, pathName: string, totalTime: number, success: boolean, resultCode?: number) {
+    this.appInsights.trackDependencyData({
+      id,
+      method,
+      absoluteUrl,
+      pathName,
+      totalTime,
+      success,
+      resultCode
+    });
+  }
+
+  // Set user context
+  setUser(userId: string, authenticatedUserId?: string) {
+    this.appInsights.setAuthenticatedUserContext(authenticatedUserId || userId, userId);
+  }
+
+  // Set custom properties for all telemetry
+  setProperties(properties: { [key: string]: any }) {
+    this.appInsights.addTelemetryInitializer((envelope) => {
+      envelope.data = envelope.data || {};
+      envelope.data.properties = { ...envelope.data.properties, ...properties };
+    });
+  }
+
+  // Start/stop timing for performance tracking
+  startTrackEvent(name: string) {
+    this.appInsights.startTrackEvent(name);
+  }
+
+  stopTrackEvent(name: string, properties?: { [key: string]: any }, measurements?: { [key: string]: number }) {
+    this.appInsights.stopTrackEvent(name, properties, measurements);
+  }
+
+  // Flush all pending telemetry
+  flush() {
+    this.appInsights.flush();
+  }
+}
+
+
+import { NgModule, APP_INITIALIZER } from '@angular/core';
+import { BrowserModule } from '@angular/platform-browser';
+import { ApplicationInsightsService } from './services/application-insights.service';
+import { AppComponent } from './app.component';
+
+export function initializeAppInsights(appInsights: ApplicationInsightsService) {
+  return () => {
+    // Service is already initialized in constructor
+    console.log('Application Insights ready');
+  };
+}
+
+@NgModule({
+  declarations: [
+    AppComponent
+  ],
+  imports: [
+    BrowserModule
+  ],
+  providers: [
+    ApplicationInsightsService,
+    {
+      provide: APP_INITIALIZER,
+      useFactory: initializeAppInsights,
+      deps: [ApplicationInsightsService],
+      multi: true
+    }
+  ],
+  bootstrap: [AppComponent]
+})
+export class AppModule { }
+
+
+
+
+
+
+import { Component, OnInit } from '@angular/core';
+import { ApplicationInsightsService } from './services/application-insights.service';
+
+@Component({
+  selector: 'app-example',
+  template: `
+    <button (click)="performOperation()">Perform Operation</button>
+    <button (click)="simulateError()">Simulate Error</button>
+  `
+})
+export class ExampleComponent implements OnInit {
+
+  constructor(private appInsights: ApplicationInsightsService) {}
+
+  ngOnInit() {
+    // Track page view
+    this.appInsights.trackEvent('ExampleComponent Loaded', {
+      component: 'ExampleComponent',
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  performOperation() {
+    const startTime = Date.now();
+    
+    // Start tracking the operation
+    this.appInsights.startTrackEvent('PerformOperation');
+    
+    try {
+      // Simulate some work
+      const result = this.businessLogic();
+      
+      // Track successful operation
+      this.appInsights.trackEvent('Operation Completed', {
+        operation: 'performOperation',
+        result: result,
+        success: true
+      });
+      
+      // Track performance metric
+      const duration = Date.now() - startTime;
+      this.appInsights.trackMetric('Operation Duration', duration, {
+        operation: 'performOperation'
+      });
+      
+      // Stop tracking the event
+      this.appInsights.stopTrackEvent('PerformOperation', {
+        success: true,
+        result: result
+      }, {
+        duration: duration
+      });
+      
+    } catch (error) {
+      // Track the error
+      this.appInsights.trackException(error as Error, {
+        operation: 'performOperation',
+        timestamp: new Date().toISOString()
+      });
+      
+      this.appInsights.stopTrackEvent('PerformOperation', {
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  }
+
+  simulateError() {
+    try {
+      throw new Error('This is a test error for Application Insights');
+    } catch (error) {
+      this.appInsights.trackException(error as Error, {
+        source: 'simulateError',
+        severity: 'high'
+      });
+    }
+  }
+
+  // Track API calls
+  async callApi() {
+    const startTime = Date.now();
+    const apiUrl = 'https://api.example.com/data';
+    
+    try {
+      const response = await fetch(apiUrl);
+      const duration = Date.now() - startTime;
+      
+      // Track dependency (API call)
+      this.appInsights.trackDependency(
+        'api-call-' + Date.now(),
+        'GET',
+        apiUrl,
+        '/data',
+        duration,
+        response.ok,
+        response.status
+      );
+      
+      if (response.ok) {
+        this.appInsights.trackTrace('API call successful', 1, {
+          url: apiUrl,
+          status: response.status
+        });
+      }
+      
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      
+      this.appInsights.trackDependency(
+        'api-call-' + Date.now(),
+        'GET',
+        apiUrl,
+        '/data',
+        duration,
+        false,
+        0
+      );
+      
+      this.appInsights.trackException(error as Error, {
+        apiUrl: apiUrl,
+        operation: 'callApi'
+      });
+    }
+  }
+
+  // Track user actions
+  onUserLogin(userId: string) {
+    this.appInsights.setUser(userId);
+    this.appInsights.trackEvent('User Login', {
+      userId: userId,
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  // Track custom business metrics
+  trackBusinessMetric(metricName: string, value: number, properties?: any) {
+    this.appInsights.trackMetric(metricName, value, properties);
+  }
+
+  private businessLogic(): string {
+    // Simulate some business logic
+    const operations = ['create', 'update', 'delete', 'read'];
+    return operations[Math.floor(Math.random() * operations.length)];
+  }
+}
+
+
+
+
+
+
+
+
+
+
+import { Injectable } from '@angular/core';
+import { HttpInterceptor, HttpRequest, HttpHandler, HttpEvent, HttpResponse, HttpErrorResponse } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { tap } from 'rxjs/operators';
+import { ApplicationInsightsService } from './services/application-insights.service';
+
+@Injectable()
+export class AppInsightsHttpInterceptor implements HttpInterceptor {
+  
+  constructor(private appInsights: ApplicationInsightsService) {}
+
+  intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+    const startTime = Date.now();
+    
+    return next.handle(req).pipe(
+      tap(
+        (event: HttpEvent<any>) => {
+          if (event instanceof HttpResponse) {
+            const duration = Date.now() - startTime;
+            
+            // Track successful HTTP request
+            this.appInsights.trackDependency(
+              req.url + '-' + startTime,
+              req.method,
+              req.url,
+              req.urlWithParams,
+              duration,
+              true,
+              event.status
+            );
+            
+            // Track custom event for API success
+            this.appInsights.trackEvent('HTTP Request Success', {
+              method: req.method,
+              url: req.url,
+              status: event.status,
+              duration: duration
+            });
+          }
+        },
+        (error: HttpErrorResponse) => {
+          const duration = Date.now() - startTime;
+          
+          // Track failed HTTP request
+          this.appInsights.trackDependency(
+            req.url + '-' + startTime,
+            req.method,
+            req.url,
+            req.urlWithParams,
+            duration,
+            false,
+            error.status
+          );
+          
+          // Track the error
+          this.appInsights.trackException(error, {
+            method: req.method,
+            url: req.url,
+            status: error.status,
+            message: error.message
+          });
+        }
+      )
+    );
+  }
+}
+
+// Don't forget to register this interceptor in your providers:
+// In main.ts (standalone):
+/*
+providers: [
+  {
+    provide: HTTP_INTERCEPTORS,
+    useClass: AppInsightsHttpInterceptor,
+    multi: true
+  }
+]
+*/
+
+// In app.module.ts:
+/*
+providers: [
+  {
+    provide: HTTP_INTERCEPTORS,
+    useClass: AppInsightsHttpInterceptor,
+    multi: true
+  }
+]
+*/
