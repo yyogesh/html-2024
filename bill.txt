@@ -1,112 +1,109 @@
-// Variables
-$primary-color: #ff6b35;
-$secondary-color: #4a5568;
-$text-color: #2d3748;
-$light-bg: #f7fafc;
-$white: #ffffff;
-$border-color: #e2e8f0;
-$shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+// Bill Payment Component Styles
+// Using existing project variables and mixins
 
-// Breakpoints
-$mobile: 768px;
-$tablet: 1024px;
-$desktop: 1200px;
-
-// Mixins
-@mixin container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
-  
-  @media (max-width: $mobile) {
-    padding: 0 16px;
-  }
-}
-
-@mixin btn-base {
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-weight: 600;
-  text-decoration: none;
-  display: inline-block;
-  cursor: pointer;
-  border: none;
-  transition: all 0.3s ease;
-  font-size: 14px;
-  
-  @media (max-width: $mobile) {
-    padding: 10px 20px;
-    font-size: 13px;
-  }
-}
-
-@mixin btn-primary {
-  @include btn-base;
-  background: $primary-color;
-  color: $white;
-  
-  &:hover {
-    background: darken($primary-color, 10%);
-    transform: translateY(-2px);
-  }
-}
-
-@mixin btn-secondary {
-  @include btn-base;
-  background: transparent;
-  color: $primary-color;
-  border: 2px solid $primary-color;
-  
-  &:hover {
-    background: $primary-color;
-    color: $white;
-  }
-}
-
-// Base styles
 .bill-payment-container {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-family-primary);
   line-height: 1.6;
-  color: $text-color;
+  color: var(--trinity-font-size-md);
   overflow-x: hidden;
 }
 
 .container {
-  @include container;
+  display: block;
+  margin: var(--tri-space-250) auto;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.13);
+  background: var(--neo-basic-white-bg);
+  padding: 40px 30px 40px 30px;
+  width: 512px;
+  
+  @include breakpoint(sm, down) {
+    width: 100%;
+    padding: 30px;
+  }
 }
 
 .btn-primary {
-  @include btn-primary;
+  position: absolute;
+  top: 0;
+  min-height: 100%;
+  width: 100vw;
+  margin: 0 auto;
+  background-color: var(--primary-background-color);
+  font-size: var(--trinity-font-size-md);
+  font-family: var(--font-family-primary);
+  border: 2px solid var(--secondary-color);
+  padding: var(--tri-space-200);
+  
+  &:hover {
+    transform: translateY(-2px);
+    transition: all 0.3s ease;
+  }
 }
 
 .btn-secondary {
-  @include btn-secondary;
+  background: transparent;
+  color: var(--primary-background-color);
+  border: 2px solid var(--secondary-color);
+  padding: var(--tri-space-200);
+  font-family: var(--font-family-primary);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background: var(--primary-background-color);
+    color: var(--neo-basic-white-bg);
+  }
 }
 
 .highlight {
-  color: $primary-color;
+  color: var(--primary-background-color);
 }
 
 // Hero Section
 .hero-section {
-  padding: 80px 0;
+  padding: var(--tri-space-800) 0;
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   
-  @media (max-width: $mobile) {
-    padding: 60px 0;
+  @include breakpoint(sm, up) {
+    padding: var(--tri-space-600) 0;
   }
 }
 
 .hero-content {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 60px;
-  align-items: center;
+  grid-template-columns: 1fr;
+  gap: var(--tri-space-400);
+  min-height: 50vh;
+  margin-top: var(--tri-space-800);
   
-  @media (max-width: $tablet) {
-    grid-template-columns: 1fr;
-    gap: 40px;
-    text-align: center;
+  @include breakpoint(sm, up) {
+    min-height: 70vh;
+    gap: var(--tri-space-600);
+  }
+  
+  @include breakpoint(md, up) {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--tri-space-800);
+    min-height: 60vh;
+  }
+}
+
+.section-one {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--tri-space-400);
+  min-height: 50vh;
+  margin-top: var(--tri-space-800);
+  
+  @include breakpoint(sm, up) {
+    min-height: 70vh;
+    gap: var(--tri-space-600);
+  }
+  
+  @include breakpoint(md, up) {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--tri-space-800);
+    min-height: 60vh;
   }
 }
 
@@ -115,36 +112,33 @@ $desktop: 1200px;
     font-size: 3.5rem;
     font-weight: 700;
     line-height: 1.2;
-    margin-bottom: 24px;
+    margin-bottom: var(--tri-space-200);
     
-    @media (max-width: $tablet) {
+    @include breakpoint(md, up) {
       font-size: 2.8rem;
     }
     
-    @media (max-width: $mobile) {
+    @include breakpoint(sm, up) {
       font-size: 2.2rem;
     }
   }
   
   p {
-    font-size: 1.1rem;
-    margin-bottom: 32px;
-    color: $secondary-color;
-    
-    @media (max-width: $mobile) {
-      font-size: 1rem;
-    }
+    font-size: var(--trinity-font-size-md);
+    margin-bottom: var(--tri-space-300);
+    color: var(--secondary-color);
+    font-family: var(--font-family-primary);
   }
 }
 
 .hero-buttons {
   display: flex;
-  gap: 16px;
+  gap: var(--tri-space-200);
   flex-wrap: wrap;
   
-  @media (max-width: $mobile) {
+  @include breakpoint(sm, up) {
     flex-direction: column;
-    gap: 12px;
+    gap: var(--tri-space-150);
   }
 }
 
@@ -152,39 +146,40 @@ $desktop: 1200px;
   display: flex;
   justify-content: center;
   
-  @media (max-width: $tablet) {
+  @include breakpoint(md, up) {
     order: -1;
   }
 }
 
 .payment-interface {
-  background: $white;
+  background: var(--neo-basic-white-bg);
   border-radius: 16px;
-  box-shadow: $shadow;
-  padding: 24px;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.13);
+  padding: var(--tri-space-200);
   max-width: 400px;
   width: 100%;
   
-  @media (max-width: $mobile) {
+  @include breakpoint(sm, up) {
     max-width: 300px;
-    padding: 20px;
+    padding: var(--tri-space-150);
   }
 }
 
 .interface-header {
-  margin-bottom: 20px;
+  margin-bottom: var(--tri-space-150);
 }
 
 .transfer-badge {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--tri-space-100);
   background: #e8f5e8;
   color: #065f46;
-  padding: 8px 12px;
+  padding: var(--tri-space-100) var(--tri-space-150);
   border-radius: 20px;
-  font-size: 0.875rem;
+  font-size: var(--trinity-font-size-sm);
   font-weight: 500;
+  font-family: var(--font-family-primary);
   
   .icon {
     font-size: 1rem;
@@ -192,8 +187,8 @@ $desktop: 1200px;
   
   .status {
     background: #059669;
-    color: white;
-    padding: 2px 8px;
+    color: var(--neo-basic-white-bg);
+    padding: 2px var(--tri-space-100);
     border-radius: 10px;
     font-size: 0.75rem;
     margin-left: 4px;
@@ -209,58 +204,61 @@ $desktop: 1200px;
 .user-info {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--tri-space-150);
 }
 
 .avatar {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: linear-gradient(45deg, #ff6b35, #f093fb);
+  background: linear-gradient(45deg, var(--primary-background-color), #f093fb);
 }
 
 .user-details {
   h4 {
     margin: 0;
-    font-size: 1rem;
+    font-size: var(--trinity-font-size-md);
     font-weight: 600;
+    font-family: var(--font-family-primary);
   }
   
   p {
     margin: 0;
-    font-size: 0.875rem;
-    color: $secondary-color;
+    font-size: var(--trinity-font-size-sm);
+    color: var(--secondary-color);
+    font-family: var(--font-family-primary);
   }
 }
 
 .payment-notification {
   background: #e0f2fe;
   color: #0277bd;
-  padding: 8px 16px;
+  padding: var(--tri-space-100) var(--tri-space-200);
   border-radius: 20px;
-  font-size: 0.875rem;
+  font-size: var(--trinity-font-size-sm);
   font-weight: 500;
+  font-family: var(--font-family-primary);
 }
 
 // Calculator Section
 .calculator-section {
-  padding: 80px 0;
-  background: $white;
+  padding: var(--tri-space-800) 0;
+  background: var(--neo-basic-white-bg);
   
-  @media (max-width: $mobile) {
-    padding: 60px 0;
+  @include breakpoint(sm, up) {
+    padding: var(--tri-space-600) 0;
   }
 }
 
 .calculator-content {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 60px;
+  gap: var(--tri-space-600);
   align-items: center;
   
-  @media (max-width: $tablet) {
+  @include breakpoint(md, up) {
     grid-template-columns: 1fr;
-    gap: 40px;
+    gap: var(--tri-space-400);
   }
 }
 
@@ -269,41 +267,40 @@ $desktop: 1200px;
     font-size: 2.5rem;
     font-weight: 700;
     line-height: 1.2;
-    margin-bottom: 20px;
+    margin-bottom: var(--tri-space-150);
+    font-family: var(--font-family-primary);
     
-    @media (max-width: $mobile) {
+    @include breakpoint(sm, up) {
       font-size: 2rem;
     }
   }
   
   p {
-    font-size: 1.1rem;
-    color: $secondary-color;
-    margin-bottom: 32px;
-    
-    @media (max-width: $mobile) {
-      font-size: 1rem;
-    }
+    font-size: var(--trinity-font-size-md);
+    color: var(--secondary-color);
+    margin-bottom: var(--tri-space-300);
+    font-family: var(--font-family-primary);
   }
 }
 
 .calculator-widget {
-  background: $light-bg;
+  background: #f7fafc;
   border-radius: 16px;
-  padding: 32px;
-  box-shadow: $shadow;
+  padding: var(--tri-space-300);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.13);
   
-  @media (max-width: $mobile) {
-    padding: 24px;
+  @include breakpoint(sm, up) {
+    padding: var(--tri-space-200);
   }
 }
 
 .calculator-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 24px;
+  gap: var(--tri-space-150);
+  margin-bottom: var(--tri-space-200);
   font-weight: 600;
+  font-family: var(--font-family-primary);
   
   .calculator-icon {
     font-size: 1.5rem;
@@ -312,54 +309,57 @@ $desktop: 1200px;
 
 .calculator-form {
   .input-group {
-    margin-bottom: 20px;
+    margin-bottom: var(--tri-space-150);
     
     label {
       display: block;
-      margin-bottom: 8px;
+      margin-bottom: var(--tri-space-100);
       font-weight: 500;
-      color: $secondary-color;
+      color: var(--secondary-color);
+      font-family: var(--font-family-primary);
     }
   }
   
   .currency-input {
     display: flex;
-    gap: 12px;
+    gap: var(--tri-space-150);
     
-    @media (max-width: $mobile) {
+    @include breakpoint(sm, up) {
       flex-direction: column;
-      gap: 8px;
+      gap: var(--tri-space-100);
     }
     
     select {
       flex: 1;
-      padding: 12px;
-      border: 1px solid $border-color;
+      padding: var(--tri-space-150);
+      border: 2px solid var(--secondary-color);
       border-radius: 8px;
-      background: $white;
-      font-size: 14px;
+      background: var(--neo-basic-white-bg);
+      font-size: var(--trinity-font-size-sm);
+      font-family: var(--font-family-primary);
       
       &:focus {
         outline: none;
-        border-color: $primary-color;
+        border-color: var(--primary-background-color);
       }
     }
     
     input {
       flex: 2;
-      padding: 12px;
-      border: 1px solid $border-color;
+      padding: var(--tri-space-150);
+      border: 2px solid var(--secondary-color);
       border-radius: 8px;
-      font-size: 14px;
+      font-size: var(--trinity-font-size-sm);
+      font-family: var(--font-family-primary);
       
       &:focus {
         outline: none;
-        border-color: $primary-color;
+        border-color: var(--primary-background-color);
       }
       
       &[readonly] {
         background: #f8f9fa;
-        color: $secondary-color;
+        color: var(--secondary-color);
       }
     }
   }
@@ -367,37 +367,39 @@ $desktop: 1200px;
   .exchange-info {
     small {
       display: block;
-      color: $secondary-color;
+      color: var(--secondary-color);
       font-size: 0.75rem;
       margin-top: 4px;
+      font-family: var(--font-family-primary);
     }
   }
 }
 
 // Testimonials Section
 .testimonials-section {
-  padding: 80px 0;
-  background: $light-bg;
+  padding: var(--tri-space-800) 0;
+  background: #f7fafc;
   
-  @media (max-width: $mobile) {
-    padding: 60px 0;
+  @include breakpoint(sm, up) {
+    padding: var(--tri-space-600) 0;
   }
   
   h2 {
     text-align: center;
     font-size: 2.5rem;
     font-weight: 700;
-    margin-bottom: 60px;
+    margin-bottom: var(--tri-space-600);
+    font-family: var(--font-family-primary);
     
-    @media (max-width: $mobile) {
+    @include breakpoint(sm, up) {
       font-size: 2rem;
-      margin-bottom: 40px;
+      margin-bottom: var(--tri-space-400);
     }
   }
 }
 
 .testimonials-slider {
-  margin-bottom: 40px;
+  margin-bottom: var(--tri-space-400);
 }
 
 .testimonial-card {
@@ -411,14 +413,14 @@ $desktop: 1200px;
 .testimonial-content {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 40px;
+  gap: var(--tri-space-400);
   align-items: center;
   max-width: 1000px;
   margin: 0 auto;
   
-  @media (max-width: $tablet) {
+  @include breakpoint(md, up) {
     grid-template-columns: 1fr;
-    gap: 30px;
+    gap: var(--tri-space-300);
     text-align: center;
   }
 }
@@ -428,9 +430,9 @@ $desktop: 1200px;
     width: 200px;
     height: 200px;
     border-radius: 16px;
-    background: linear-gradient(45deg, #ff6b35, #f093fb);
+    background: linear-gradient(45deg, var(--primary-background-color), #f093fb);
     
-    @media (max-width: $mobile) {
+    @include breakpoint(sm, up) {
       width: 150px;
       height: 150px;
       margin: 0 auto;
@@ -443,10 +445,11 @@ $desktop: 1200px;
     font-size: 1.25rem;
     font-style: italic;
     line-height: 1.6;
-    margin-bottom: 24px;
-    color: $text-color;
+    margin-bottom: var(--tri-space-200);
+    color: var(--trinity-font-size-md);
+    font-family: var(--font-family-primary);
     
-    @media (max-width: $mobile) {
+    @include breakpoint(sm, up) {
       font-size: 1.1rem;
     }
   }
@@ -457,24 +460,27 @@ $desktop: 1200px;
     display: block;
     font-size: 1.1rem;
     margin-bottom: 4px;
+    font-family: var(--font-family-primary);
   }
   
   span {
-    color: $secondary-color;
+    color: var(--secondary-color);
     font-size: 0.95rem;
+    font-family: var(--font-family-primary);
   }
   
   .company-logo {
-    margin-top: 12px;
+    margin-top: var(--tri-space-150);
     font-weight: 600;
-    color: $primary-color;
+    color: var(--primary-background-color);
+    font-family: var(--font-family-primary);
   }
 }
 
 .testimonial-nav {
   display: flex;
   justify-content: center;
-  gap: 12px;
+  gap: var(--tri-space-150);
 }
 
 .nav-dot {
@@ -487,42 +493,43 @@ $desktop: 1200px;
   transition: all 0.3s ease;
   
   &.active {
-    background: $primary-color;
+    background: var(--primary-background-color);
   }
 }
 
 // Security Section
 .security-section {
-  padding: 80px 0;
-  background: $white;
+  padding: var(--tri-space-800) 0;
+  background: var(--neo-basic-white-bg);
   
-  @media (max-width: $mobile) {
-    padding: 60px 0;
+  @include breakpoint(sm, up) {
+    padding: var(--tri-space-600) 0;
   }
   
   h2 {
     text-align: center;
     font-size: 2.5rem;
     font-weight: 700;
-    margin-bottom: 16px;
+    margin-bottom: var(--tri-space-200);
+    font-family: var(--font-family-primary);
     
-    @media (max-width: $mobile) {
+    @include breakpoint(sm, up) {
       font-size: 2rem;
     }
   }
   
   .section-subtitle {
     text-align: center;
-    font-size: 1.1rem;
-    color: $secondary-color;
-    margin-bottom: 60px;
+    font-size: var(--trinity-font-size-md);
+    color: var(--secondary-color);
+    margin-bottom: var(--tri-space-600);
     max-width: 600px;
     margin-left: auto;
     margin-right: auto;
+    font-family: var(--font-family-primary);
     
-    @media (max-width: $mobile) {
-      font-size: 1rem;
-      margin-bottom: 40px;
+    @include breakpoint(sm, up) {
+      margin-bottom: var(--tri-space-400);
     }
   }
 }
@@ -530,54 +537,56 @@ $desktop: 1200px;
 .security-features {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 40px;
+  gap: var(--tri-space-400);
   
-  @media (max-width: $mobile) {
+  @include breakpoint(sm, up) {
     grid-template-columns: 1fr;
-    gap: 30px;
+    gap: var(--tri-space-300);
   }
 }
 
 .security-feature {
   text-align: center;
-  padding: 30px 20px;
+  padding: var(--tri-space-300) var(--tri-space-150);
   
   .feature-icon {
     font-size: 3rem;
-    margin-bottom: 20px;
+    margin-bottom: var(--tri-space-150);
   }
   
   h3 {
     font-size: 1.3rem;
     font-weight: 600;
-    margin-bottom: 16px;
+    margin-bottom: var(--tri-space-200);
+    font-family: var(--font-family-primary);
   }
   
   p {
-    color: $secondary-color;
+    color: var(--secondary-color);
     line-height: 1.6;
+    font-family: var(--font-family-primary);
   }
 }
 
 // Speed Section
 .speed-section {
-  padding: 80px 0;
-  background: $light-bg;
+  padding: var(--tri-space-800) 0;
+  background: #f7fafc;
   
-  @media (max-width: $mobile) {
-    padding: 60px 0;
+  @include breakpoint(sm, up) {
+    padding: var(--tri-space-600) 0;
   }
 }
 
 .speed-content {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 60px;
+  gap: var(--tri-space-600);
   align-items: center;
   
-  @media (max-width: $tablet) {
+  @include breakpoint(md, up) {
     grid-template-columns: 1fr;
-    gap: 40px;
+    gap: var(--tri-space-400);
     text-align: center;
   }
 }
@@ -585,10 +594,10 @@ $desktop: 1200px;
 .speed-currencies {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
+  gap: var(--tri-space-150);
   
-  @media (max-width: $mobile) {
-    gap: 15px;
+  @include breakpoint(sm, up) {
+    gap: var(--tri-space-100);
   }
 }
 
@@ -596,15 +605,16 @@ $desktop: 1200px;
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: $primary-color;
-  color: $white;
+  background: var(--primary-background-color);
+  color: var(--neo-basic-white-bg);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.5rem;
   font-weight: 600;
+  font-family: var(--font-family-primary);
   
-  @media (max-width: $mobile) {
+  @include breakpoint(sm, up) {
     width: 60px;
     height: 60px;
     font-size: 1.2rem;
@@ -615,42 +625,41 @@ $desktop: 1200px;
   h2 {
     font-size: 2.5rem;
     font-weight: 700;
-    margin-bottom: 20px;
+    margin-bottom: var(--tri-space-150);
+    font-family: var(--font-family-primary);
     
-    @media (max-width: $mobile) {
+    @include breakpoint(sm, up) {
       font-size: 2rem;
     }
   }
   
   p {
-    font-size: 1.1rem;
-    color: $secondary-color;
-    margin-bottom: 32px;
-    
-    @media (max-width: $mobile) {
-      font-size: 1rem;
-    }
+    font-size: var(--trinity-font-size-md);
+    color: var(--secondary-color);
+    margin-bottom: var(--tri-space-300);
+    font-family: var(--font-family-primary);
   }
 }
 
 // FAQ Section
 .faq-section {
-  padding: 80px 0;
-  background: $white;
+  padding: var(--tri-space-800) 0;
+  background: var(--neo-basic-white-bg);
   
-  @media (max-width: $mobile) {
-    padding: 60px 0;
+  @include breakpoint(sm, up) {
+    padding: var(--tri-space-600) 0;
   }
   
   h2 {
     text-align: center;
     font-size: 2.5rem;
     font-weight: 700;
-    margin-bottom: 60px;
+    margin-bottom: var(--tri-space-600);
+    font-family: var(--font-family-primary);
     
-    @media (max-width: $mobile) {
+    @include breakpoint(sm, up) {
       font-size: 2rem;
-      margin-bottom: 40px;
+      margin-bottom: var(--tri-space-400);
     }
   }
 }
@@ -661,7 +670,7 @@ $desktop: 1200px;
 }
 
 .faq-item {
-  border-bottom: 1px solid $border-color;
+  border-bottom: 2px solid var(--secondary-color);
   
   &:last-child {
     border-bottom: none;
@@ -670,7 +679,7 @@ $desktop: 1200px;
 
 .faq-question {
   width: 100%;
-  padding: 24px 0;
+  padding: var(--tri-space-200) 0;
   background: none;
   border: none;
   text-align: left;
@@ -678,33 +687,34 @@ $desktop: 1200px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 1.1rem;
+  font-size: var(--trinity-font-size-md);
   font-weight: 500;
-  color: $text-color;
+  color: var(--trinity-font-size-md);
+  font-family: var(--font-family-primary);
   
-  @media (max-width: $mobile) {
-    font-size: 1rem;
-    padding: 20px 0;
+  @include breakpoint(sm, up) {
+    padding: var(--tri-space-150) 0;
   }
   
   &:hover {
-    color: $primary-color;
+    color: var(--primary-background-color);
   }
   
   .faq-icon {
     font-size: 1.5rem;
-    color: $primary-color;
+    color: var(--primary-background-color);
     font-weight: 300;
   }
 }
 
 .faq-answer {
-  padding: 0 0 24px 0;
-  color: $secondary-color;
+  padding: 0 0 var(--tri-space-200) 0;
+  color: var(--secondary-color);
   line-height: 1.6;
+  font-family: var(--font-family-primary);
   
-  @media (max-width: $mobile) {
-    padding: 0 0 20px 0;
+  @include breakpoint(sm, up) {
+    padding: 0 0 var(--tri-space-150) 0;
   }
   
   p {
@@ -714,25 +724,26 @@ $desktop: 1200px;
 
 // Partners Section
 .partners-section {
-  padding: 60px 0;
-  background: $light-bg;
+  padding: var(--tri-space-600) 0;
+  background: #f7fafc;
   
-  @media (max-width: $mobile) {
-    padding: 40px 0;
+  @include breakpoint(sm, up) {
+    padding: var(--tri-space-400) 0;
   }
 }
 
 .partners-title {
   text-align: center;
-  font-size: 0.875rem;
+  font-size: var(--trinity-font-size-sm);
   font-weight: 600;
-  color: $secondary-color;
+  color: var(--secondary-color);
   letter-spacing: 0.05em;
-  margin-bottom: 40px;
+  margin-bottom: var(--tri-space-400);
+  font-family: var(--font-family-primary);
   
-  @media (max-width: $mobile) {
+  @include breakpoint(sm, up) {
     font-size: 0.8rem;
-    margin-bottom: 30px;
+    margin-bottom: var(--tri-space-300);
   }
 }
 
@@ -740,32 +751,50 @@ $desktop: 1200px;
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 60px;
+  gap: var(--tri-space-600);
   flex-wrap: wrap;
   
-  @media (max-width: $tablet) {
-    gap: 40px;
+  @include breakpoint(md, up) {
+    gap: var(--tri-space-400);
   }
   
-  @media (max-width: $mobile) {
-    gap: 30px;
+  @include breakpoint(sm, up) {
+    gap: var(--tri-space-300);
   }
 }
 
 .partner-logo {
   font-size: 1.2rem;
   font-weight: 600;
-  color: $secondary-color;
+  color: var(--secondary-color);
   opacity: 0.7;
   transition: opacity 0.3s ease;
+  font-family: var(--font-family-primary);
   
   &:hover {
     opacity: 1;
   }
   
-  @media (max-width: $mobile) {
+  @include breakpoint(sm, up) {
     font-size: 1rem;
   }
+}
+
+// Animated content
+.animated {
+  .content-section {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+// Modal styles (based on WalletWithdrawalAmt pattern)
+.modal-header-basic {
+  height: var(--tri-space-800);
+}
+
+.modal-header-basic-content {
+  margin: var(--tri-space-50) auto;
 }
 
 // Animations
@@ -785,13 +814,13 @@ $desktop: 1200px;
 }
 
 // Responsive utilities
-@media (max-width: $mobile) {
+@include breakpoint(sm, up) {
   .hide-mobile {
     display: none !important;
   }
 }
 
-@media (min-width: #{$mobile + 1px}) {
+@include breakpoint(sm, down) {
   .show-mobile {
     display: none !important;
   }
