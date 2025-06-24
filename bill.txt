@@ -1,0 +1,1131 @@
+<div class="bill-payment-container">
+      <!-- Hero Section -->
+      <section class="hero-section">
+        <div class="container">
+          <div class="hero-content">
+            <div class="hero-text">
+              <h1>The smarter way <br>to <span class="highlight">pay globally</span></h1>
+              <p>BILL moves over $2B in international payments annually—helping businesses pay globally with smart security and control. Talk to a specialist to explore high-volume transactions and better pricing for your international payments.</p>
+              <div class="hero-buttons">
+                <button class="btn-primary">Request online pricing</button>
+                <button class="btn-secondary">Contact customer support</button>
+              </div>
+            </div>
+            <div class="hero-image">
+              <div class="payment-interface">
+                <div class="interface-header">
+                  <span class="transfer-badge">
+                    <span class="icon">🌍</span>
+                    Local Transfer
+                    <span class="status">Active Transfer</span>
+                  </span>
+                </div>
+                <div class="interface-content">
+                  <div class="user-info">
+                    <div class="avatar"></div>
+                    <div class="user-details">
+                      <h4>Sarah Chen</h4>
+                      <p>Finance Manager</p>
+                    </div>
+                  </div>
+                  <div class="payment-notification">
+                    Payment sent
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Exchange Rate Calculator -->
+      <section class="calculator-section">
+        <div class="container">
+          <div class="calculator-content">
+            <div class="calculator-info">
+              <h2>Better rates for <br>bigger transfers</h2>
+              <p>The more you send through BILL, the better your exchange rate— helping you maximize value on high-volume payments. See what you'd pay below or connect with a specialist to explore even better pricing.</p>
+              <button class="btn-primary">Request online pricing</button>
+            </div>
+            <div class="calculator-widget">
+              <div class="calculator-header">
+                <span class="calculator-icon">💱</span>
+                Exchange rate calculator
+              </div>
+              <div class="calculator-form">
+                <div class="input-group">
+                  <label>Payment amount</label>
+                  <div class="currency-input">
+                    <select [(ngModel)]="selectedFromCurrency">
+                      @for (currency of currencies; track currency.code) {
+                        <option [value]="currency.code">{{currency.code}} - {{currency.symbol}}</option>
+                      }
+                    </select>
+                    <input type="number" [(ngModel)]="paymentAmount" placeholder="1000.00">
+                  </div>
+                </div>
+                <div class="input-group">
+                  <label>Vendor receives</label>
+                  <div class="currency-input">
+                    <select [(ngModel)]="selectedToCurrency">
+                      @for (currency of currencies; track currency.code) {
+                        <option [value]="currency.code">{{currency.code}} - {{currency.symbol}}</option>
+                      }
+                    </select>
+                    <input type="text" [value]="convertedAmount" readonly>
+                  </div>
+                </div>
+                <div class="exchange-info">
+                  <small>Current exchange rate: 1 USD = 0.8456 EUR | 1 MXN | 0.0037 USD</small>
+                  <small>*Final rate may differ from the current quoted exchange rate based on transfer amount and market fluctuation.</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Testimonials Section -->
+      <section class="testimonials-section">
+        <div class="container">
+          <h2>Our customers succeed with <span class="highlight">BILL</span></h2>
+          <div class="testimonials-slider">
+            @for (testimonial of testimonials; track testimonial.author; let i = $index) {
+              <div class="testimonial-card" [class.active]="i === activeTestimonial">
+                <div class="testimonial-content">
+                  <div class="testimonial-image">
+                    <div class="avatar-large"></div>
+                  </div>
+                  <div class="testimonial-text">
+                    <blockquote>"{{testimonial.quote}}"</blockquote>
+                    <div class="testimonial-author">
+                      <strong>{{testimonial.author}}</strong>
+                      <span>{{testimonial.position}}</span>
+                      <div class="company-logo">{{testimonial.company}}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+          <div class="testimonial-nav">
+            @for (testimonial of testimonials; track testimonial.author; let i = $index) {
+              <button 
+                class="nav-dot" 
+                [class.active]="i === activeTestimonial"
+                (click)="setActiveTestimonial(i)">
+              </button>
+            }
+          </div>
+        </div>
+      </section>
+
+      <!-- Security Features -->
+      <section class="security-section">
+        <div class="container">
+          <h2>Built for peace of mind</h2>
+          <p class="section-subtitle">BILL takes payment security seriously. Here are just a few ways we help protect your money and data.</p>
+          <div class="security-features">
+            @for (feature of securityFeatures; track feature.title) {
+              <div class="security-feature">
+                <div class="feature-icon">{{feature.icon}}</div>
+                <h3>{{feature.title}}</h3>
+                <p>{{feature.description}}</p>
+              </div>
+            }
+          </div>
+        </div>
+      </section>
+
+      <!-- Speed Section -->
+      <section class="speed-section">
+        <div class="container">
+          <div class="speed-content">
+            <div class="speed-currencies">
+              @for (currency of speedCurrencies; track currency) {
+                <div class="currency-circle">{{currency}}</div>
+              }
+            </div>
+            <div class="speed-info">
+              <h2>Faster than fast</h2>
+              <p>Pay international vendors up to 4 days faster than wire with Local Transfer—often on the same or next business day.</p>
+              <button class="btn-primary">Make an international payment</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FAQ Section -->
+      <section class="faq-section">
+        <div class="container">
+          <h2>Frequently asked questions</h2>
+          <div class="faq-list">
+            @for (faq of faqs; track faq.question) {
+              <div class="faq-item">
+                <button 
+                  class="faq-question" 
+                  (click)="toggleFAQ(faq)"
+                  [class.active]="faq.isOpen">
+                  <span>{{faq.question}}</span>
+                  <span class="faq-icon">{{faq.isOpen ? '−' : '+'}}</span>
+                </button>
+                @if (faq.isOpen) {
+                  <div class="faq-answer">
+                    <p>{{faq.answer}}</p>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      </section>
+
+      <!-- Partners Section -->
+      <section class="partners-section">
+        <div class="container">
+          <p class="partners-title">TRANSFORMING THE FINANCIAL OPERATIONS OF THOUSANDS OF BUSINESSES</p>
+          <div class="partners-grid">
+            @for (partner of partners; track partner.name) {
+              <div class="partner-logo">{{partner.name}}</div>
+            }
+          </div>
+        </div>
+      </section>
+    </div>
+
+
+
+
+
+
+// Variables
+$primary-color: #ff6b35;
+$secondary-color: #4a5568;
+$text-color: #2d3748;
+$light-bg: #f7fafc;
+$white: #ffffff;
+$border-color: #e2e8f0;
+$shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+
+// Breakpoints
+$mobile: 768px;
+$tablet: 1024px;
+$desktop: 1200px;
+
+// Mixins
+@mixin container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  
+  @media (max-width: $mobile) {
+    padding: 0 16px;
+  }
+}
+
+@mixin btn-base {
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-block;
+  cursor: pointer;
+  border: none;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  
+  @media (max-width: $mobile) {
+    padding: 10px 20px;
+    font-size: 13px;
+  }
+}
+
+@mixin btn-primary {
+  @include btn-base;
+  background: $primary-color;
+  color: $white;
+  
+  &:hover {
+    background: darken($primary-color, 10%);
+    transform: translateY(-2px);
+  }
+}
+
+@mixin btn-secondary {
+  @include btn-base;
+  background: transparent;
+  color: $primary-color;
+  border: 2px solid $primary-color;
+  
+  &:hover {
+    background: $primary-color;
+    color: $white;
+  }
+}
+
+// Base styles
+.bill-payment-container {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.6;
+  color: $text-color;
+  overflow-x: hidden;
+}
+
+.container {
+  @include container;
+}
+
+.btn-primary {
+  @include btn-primary;
+}
+
+.btn-secondary {
+  @include btn-secondary;
+}
+
+.highlight {
+  color: $primary-color;
+}
+
+// Hero Section
+.hero-section {
+  padding: 80px 0;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  
+  @media (max-width: $mobile) {
+    padding: 60px 0;
+  }
+}
+
+.hero-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  align-items: center;
+  
+  @media (max-width: $tablet) {
+    grid-template-columns: 1fr;
+    gap: 40px;
+    text-align: center;
+  }
+}
+
+.hero-text {
+  h1 {
+    font-size: 3.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 24px;
+    
+    @media (max-width: $tablet) {
+      font-size: 2.8rem;
+    }
+    
+    @media (max-width: $mobile) {
+      font-size: 2.2rem;
+    }
+  }
+  
+  p {
+    font-size: 1.1rem;
+    margin-bottom: 32px;
+    color: $secondary-color;
+    
+    @media (max-width: $mobile) {
+      font-size: 1rem;
+    }
+  }
+}
+
+.hero-buttons {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  
+  @media (max-width: $mobile) {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
+.hero-image {
+  display: flex;
+  justify-content: center;
+  
+  @media (max-width: $tablet) {
+    order: -1;
+  }
+}
+
+.payment-interface {
+  background: $white;
+  border-radius: 16px;
+  box-shadow: $shadow;
+  padding: 24px;
+  max-width: 400px;
+  width: 100%;
+  
+  @media (max-width: $mobile) {
+    max-width: 300px;
+    padding: 20px;
+  }
+}
+
+.interface-header {
+  margin-bottom: 20px;
+}
+
+.transfer-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #e8f5e8;
+  color: #065f46;
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  
+  .icon {
+    font-size: 1rem;
+  }
+  
+  .status {
+    background: #059669;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    margin-left: 4px;
+  }
+}
+
+.interface-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(45deg, #ff6b35, #f093fb);
+}
+
+.user-details {
+  h4 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+  
+  p {
+    margin: 0;
+    font-size: 0.875rem;
+    color: $secondary-color;
+  }
+}
+
+.payment-notification {
+  background: #e0f2fe;
+  color: #0277bd;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+// Calculator Section
+.calculator-section {
+  padding: 80px 0;
+  background: $white;
+  
+  @media (max-width: $mobile) {
+    padding: 60px 0;
+  }
+}
+
+.calculator-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  align-items: center;
+  
+  @media (max-width: $tablet) {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+}
+
+.calculator-info {
+  h2 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 20px;
+    
+    @media (max-width: $mobile) {
+      font-size: 2rem;
+    }
+  }
+  
+  p {
+    font-size: 1.1rem;
+    color: $secondary-color;
+    margin-bottom: 32px;
+    
+    @media (max-width: $mobile) {
+      font-size: 1rem;
+    }
+  }
+}
+
+.calculator-widget {
+  background: $light-bg;
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: $shadow;
+  
+  @media (max-width: $mobile) {
+    padding: 24px;
+  }
+}
+
+.calculator-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  font-weight: 600;
+  
+  .calculator-icon {
+    font-size: 1.5rem;
+  }
+}
+
+.calculator-form {
+  .input-group {
+    margin-bottom: 20px;
+    
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: $secondary-color;
+    }
+  }
+  
+  .currency-input {
+    display: flex;
+    gap: 12px;
+    
+    @media (max-width: $mobile) {
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    select {
+      flex: 1;
+      padding: 12px;
+      border: 1px solid $border-color;
+      border-radius: 8px;
+      background: $white;
+      font-size: 14px;
+      
+      &:focus {
+        outline: none;
+        border-color: $primary-color;
+      }
+    }
+    
+    input {
+      flex: 2;
+      padding: 12px;
+      border: 1px solid $border-color;
+      border-radius: 8px;
+      font-size: 14px;
+      
+      &:focus {
+        outline: none;
+        border-color: $primary-color;
+      }
+      
+      &[readonly] {
+        background: #f8f9fa;
+        color: $secondary-color;
+      }
+    }
+  }
+  
+  .exchange-info {
+    small {
+      display: block;
+      color: $secondary-color;
+      font-size: 0.75rem;
+      margin-top: 4px;
+    }
+  }
+}
+
+// Testimonials Section
+.testimonials-section {
+  padding: 80px 0;
+  background: $light-bg;
+  
+  @media (max-width: $mobile) {
+    padding: 60px 0;
+  }
+  
+  h2 {
+    text-align: center;
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 60px;
+    
+    @media (max-width: $mobile) {
+      font-size: 2rem;
+      margin-bottom: 40px;
+    }
+  }
+}
+
+.testimonials-slider {
+  margin-bottom: 40px;
+}
+
+.testimonial-card {
+  display: none;
+  
+  &.active {
+    display: block;
+  }
+}
+
+.testimonial-content {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 40px;
+  align-items: center;
+  max-width: 1000px;
+  margin: 0 auto;
+  
+  @media (max-width: $tablet) {
+    grid-template-columns: 1fr;
+    gap: 30px;
+    text-align: center;
+  }
+}
+
+.testimonial-image {
+  .avatar-large {
+    width: 200px;
+    height: 200px;
+    border-radius: 16px;
+    background: linear-gradient(45deg, #ff6b35, #f093fb);
+    
+    @media (max-width: $mobile) {
+      width: 150px;
+      height: 150px;
+      margin: 0 auto;
+    }
+  }
+}
+
+.testimonial-text {
+  blockquote {
+    font-size: 1.25rem;
+    font-style: italic;
+    line-height: 1.6;
+    margin-bottom: 24px;
+    color: $text-color;
+    
+    @media (max-width: $mobile) {
+      font-size: 1.1rem;
+    }
+  }
+}
+
+.testimonial-author {
+  strong {
+    display: block;
+    font-size: 1.1rem;
+    margin-bottom: 4px;
+  }
+  
+  span {
+    color: $secondary-color;
+    font-size: 0.95rem;
+  }
+  
+  .company-logo {
+    margin-top: 12px;
+    font-weight: 600;
+    color: $primary-color;
+  }
+}
+
+.testimonial-nav {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.nav-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: none;
+  background: #cbd5e0;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  
+  &.active {
+    background: $primary-color;
+  }
+}
+
+// Security Section
+.security-section {
+  padding: 80px 0;
+  background: $white;
+  
+  @media (max-width: $mobile) {
+    padding: 60px 0;
+  }
+  
+  h2 {
+    text-align: center;
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 16px;
+    
+    @media (max-width: $mobile) {
+      font-size: 2rem;
+    }
+  }
+  
+  .section-subtitle {
+    text-align: center;
+    font-size: 1.1rem;
+    color: $secondary-color;
+    margin-bottom: 60px;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+    
+    @media (max-width: $mobile) {
+      font-size: 1rem;
+      margin-bottom: 40px;
+    }
+  }
+}
+
+.security-features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 40px;
+  
+  @media (max-width: $mobile) {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+}
+
+.security-feature {
+  text-align: center;
+  padding: 30px 20px;
+  
+  .feature-icon {
+    font-size: 3rem;
+    margin-bottom: 20px;
+  }
+  
+  h3 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+  
+  p {
+    color: $secondary-color;
+    line-height: 1.6;
+  }
+}
+
+// Speed Section
+.speed-section {
+  padding: 80px 0;
+  background: $light-bg;
+  
+  @media (max-width: $mobile) {
+    padding: 60px 0;
+  }
+}
+
+.speed-content {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 60px;
+  align-items: center;
+  
+  @media (max-width: $tablet) {
+    grid-template-columns: 1fr;
+    gap: 40px;
+    text-align: center;
+  }
+}
+
+.speed-currencies {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  
+  @media (max-width: $mobile) {
+    gap: 15px;
+  }
+}
+
+.currency-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: $primary-color;
+  color: $white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 600;
+  
+  @media (max-width: $mobile) {
+    width: 60px;
+    height: 60px;
+    font-size: 1.2rem;
+  }
+}
+
+.speed-info {
+  h2 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+    
+    @media (max-width: $mobile) {
+      font-size: 2rem;
+    }
+  }
+  
+  p {
+    font-size: 1.1rem;
+    color: $secondary-color;
+    margin-bottom: 32px;
+    
+    @media (max-width: $mobile) {
+      font-size: 1rem;
+    }
+  }
+}
+
+// FAQ Section
+.faq-section {
+  padding: 80px 0;
+  background: $white;
+  
+  @media (max-width: $mobile) {
+    padding: 60px 0;
+  }
+  
+  h2 {
+    text-align: center;
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 60px;
+    
+    @media (max-width: $mobile) {
+      font-size: 2rem;
+      margin-bottom: 40px;
+    }
+  }
+}
+
+.faq-list {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.faq-item {
+  border-bottom: 1px solid $border-color;
+  
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.faq-question {
+  width: 100%;
+  padding: 24px 0;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: $text-color;
+  
+  @media (max-width: $mobile) {
+    font-size: 1rem;
+    padding: 20px 0;
+  }
+  
+  &:hover {
+    color: $primary-color;
+  }
+  
+  .faq-icon {
+    font-size: 1.5rem;
+    color: $primary-color;
+    font-weight: 300;
+  }
+}
+
+.faq-answer {
+  padding: 0 0 24px 0;
+  color: $secondary-color;
+  line-height: 1.6;
+  
+  @media (max-width: $mobile) {
+    padding: 0 0 20px 0;
+  }
+  
+  p {
+    margin: 0;
+  }
+}
+
+// Partners Section
+.partners-section {
+  padding: 60px 0;
+  background: $light-bg;
+  
+  @media (max-width: $mobile) {
+    padding: 40px 0;
+  }
+}
+
+.partners-title {
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: $secondary-color;
+  letter-spacing: 0.05em;
+  margin-bottom: 40px;
+  
+  @media (max-width: $mobile) {
+    font-size: 0.8rem;
+    margin-bottom: 30px;
+  }
+}
+
+.partners-grid {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 60px;
+  flex-wrap: wrap;
+  
+  @media (max-width: $tablet) {
+    gap: 40px;
+  }
+  
+  @media (max-width: $mobile) {
+    gap: 30px;
+  }
+}
+
+.partner-logo {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: $secondary-color;
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+  
+  &:hover {
+    opacity: 1;
+  }
+  
+  @media (max-width: $mobile) {
+    font-size: 1rem;
+  }
+}
+
+// Animations
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.testimonial-card.active {
+  animation: fadeInUp 0.5s ease-out;
+}
+
+// Responsive utilities
+@media (max-width: $mobile) {
+  .hide-mobile {
+    display: none !important;
+  }
+}
+
+@media (min-width: #{$mobile + 1px}) {
+  .show-mobile {
+    display: none !important;
+  }
+}
+
+
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+
+interface Testimonial {
+  quote: string;
+  author: string;
+  position: string;
+  company: string;
+  image: string;
+}
+
+interface FAQ {
+  question: string;
+  answer: string;
+  isOpen: boolean;
+}
+
+interface Partner {
+  name: string;
+  logo: string;
+}
+
+interface SecurityFeature {
+  icon: string;
+  title: string;
+  description: string;
+}
+
+interface Currency {
+  code: string;
+  symbol: string;
+  flag: string;
+}
+
+@Component({
+  selector: 'app-root',
+ imports: [CommonModule, FormsModule],
+  templateUrl: './app.component.html',
+  styleUrl: './app.component.scss'
+})
+export class AppComponent {
+  paymentAmount = 1000;
+  selectedFromCurrency = 'USD';
+  selectedToCurrency = 'EUR';
+  convertedAmount = '856.45';
+  activeTestimonial = 0;
+
+  currencies: Currency[] = [
+    { code: 'USD', symbol: '$', flag: '🇺🇸' },
+    { code: 'EUR', symbol: '€', flag: '🇪🇺' },
+    { code: 'GBP', symbol: '£', flag: '🇬🇧' },
+    { code: 'MXN', symbol: '$', flag: '🇲🇽' },
+    { code: 'CAD', symbol: '$', flag: '🇨🇦' }
+  ];
+
+  testimonials: Testimonial[] = [
+    {
+      quote: "International payments has helped process payments more quickly and easily, simplifying the Accounts Payable process. It has saved me approximately half the time I used to spend.",
+      author: "Jose Godina",
+      position: "Sr. Corporate Accountant, Director",
+      company: "DIRECTV",
+      image: "/assets/testimonial1.jpg"
+    }
+  ];
+
+  securityFeatures: SecurityFeature[] = [
+    {
+      icon: "🔒",
+      title: "People who care",
+      description: "Dedicated risk, fraud, and security teams monitoring payments"
+    },
+    {
+      icon: "🛡️",
+      title: "Secure technology",
+      description: "Robust security measures, including data encryption and 2-factor authentication to protect your payments"
+    },
+    {
+      icon: "🎯",
+      title: "Comprehensive protection",
+      description: "AICPA SOC-standard compliant systems"
+    }
+  ];
+
+  speedCurrencies = ['₹', '$', '€', '¥', '₽', '¥'];
+
+  faqs: FAQ[] = [
+    {
+      question: "How many countries can BILL send payments to?",
+      answer: "BILL can send payments to over 120 countries worldwide, supporting multiple currencies and payment methods.",
+      isOpen: false
+    },
+    {
+      question: "How long will it take for my vendors to receive payments?",
+      answer: "Most international payments are received within 1-4 business days, depending on the destination country and payment method.",
+      isOpen: false
+    },
+    {
+      question: "What are the benefits of AP automation?",
+      answer: "AP automation reduces manual work, minimizes errors, improves cash flow visibility, and speeds up the entire payment process.",
+      isOpen: false
+    },
+    {
+      question: "Can I track my international payments?",
+      answer: "Yes, BILL provides real-time tracking for all international payments with detailed status updates throughout the process.",
+      isOpen: false
+    },
+    {
+      question: "Does my vendor get charged any fees for receiving funds?",
+      answer: "In most cases, recipients don't pay fees for receiving funds, though some local banks may charge small receiving fees.",
+      isOpen: false
+    }
+  ];
+
+  partners: Partner[] = [
+    { name: "BOMBAS", logo: "/assets/bombas.svg" },
+    { name: "Squatch", logo: "/assets/squatch.svg" },
+    { name: "Solebot", logo: "/assets/solebot.svg" },
+    { name: "TEGUAR", logo: "/assets/teguar.svg" },
+    { name: "BEAR", logo: "/assets/bear.svg" }
+  ];
+
+  setActiveTestimonial(index: number): void {
+    this.activeTestimonial = index;
+  }
+
+  toggleFAQ(faq: FAQ): void {
+    faq.isOpen = !faq.isOpen;
+  }
+}
+
