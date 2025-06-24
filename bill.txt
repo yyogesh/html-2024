@@ -1,14 +1,72 @@
-<div class="bill-payment-container">
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+
+interface Testimonial {
+  quote: string;
+  author: string;
+  position: string;
+  company: string;
+  image: string;
+}
+
+interface FAQ {
+  question: string;
+  answer: string;
+  isOpen: boolean;
+}
+
+interface Partner {
+  name: string;
+  logo: string;
+}
+
+interface SecurityFeature {
+  icon: string;
+  title: string;
+  description: string;
+}
+
+interface Currency {
+  code: string;
+  symbol: string;
+  flag: string;
+}
+
+@Component({
+  selector: 'app-bill-payment',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  template: `
+    <div class="bill-payment-container">
       <!-- Hero Section -->
       <section class="hero-section">
         <div class="container">
           <div class="hero-content">
             <div class="hero-text">
               <h1>The smarter way <br>to <span class="highlight">pay globally</span></h1>
-              <p>BILL moves over $2B in international payments annually—helping businesses pay globally with smart security and control. Talk to a specialist to explore high-volume transactions and better pricing for your international payments.</p>
+              <tri-paragraph class="description">
+                {{ content()?.ipNewLandingPage?.Text }}
+              </tri-paragraph>
               <div class="hero-buttons">
-                <button class="btn-primary">Request online pricing</button>
-                <button class="btn-secondary">Contact customer support</button>
+                <tri-button
+                  type="primary"
+                  class="request-better-pricing-button"
+                  [attr.data-ga]="'request-better-pricing-btn'"
+                  id="request-better-pricing-cta-1">
+                  {{ content()?.ipNewLandingPage?.RequestBetterPricingCTA }}
+                </tri-button>
+                
+                <tri-link
+                  type="primary"
+                  size="medium"
+                  variant="default"
+                  class="contact-support-link"
+                  href="https://help.bill.com/direct/s/"
+                  target="_blank"
+                  id="contact-customer-support-link">
+                  {{ content()?.ipNewLandingPage?.ContactCustomerSupportCTA }}
+                </tri-link>
               </div>
             </div>
             <div class="hero-image">
@@ -44,8 +102,10 @@
           <div class="calculator-content">
             <div class="calculator-info">
               <h2>Better rates for <br>bigger transfers</h2>
-              <p>The more you send through BILL, the better your exchange rate— helping you maximize value on high-volume payments. See what you'd pay below or connect with a specialist to explore even better pricing.</p>
-              <button class="btn-primary">Request online pricing</button>
+              <tri-paragraph>
+                The more you send through BILL, the better your exchange rate— helping you maximize value on high-volume payments. See what you'd pay below or connect with a specialist to explore even better pricing.
+              </tri-paragraph>
+              <tri-button type="primary">Request online pricing</tri-button>
             </div>
             <div class="calculator-widget">
               <div class="calculator-header">
@@ -124,13 +184,15 @@
       <section class="security-section">
         <div class="container">
           <h2>Built for peace of mind</h2>
-          <p class="section-subtitle">BILL takes payment security seriously. Here are just a few ways we help protect your money and data.</p>
+          <tri-paragraph class="section-subtitle">
+            BILL takes payment security seriously. Here are just a few ways we help protect your money and data.
+          </tri-paragraph>
           <div class="security-features">
             @for (feature of securityFeatures; track feature.title) {
               <div class="security-feature">
                 <div class="feature-icon">{{feature.icon}}</div>
                 <h3>{{feature.title}}</h3>
-                <p>{{feature.description}}</p>
+                <tri-paragraph>{{feature.description}}</tri-paragraph>
               </div>
             }
           </div>
@@ -148,8 +210,10 @@
             </div>
             <div class="speed-info">
               <h2>Faster than fast</h2>
-              <p>Pay international vendors up to 4 days faster than wire with Local Transfer—often on the same or next business day.</p>
-              <button class="btn-primary">Make an international payment</button>
+              <tri-paragraph>
+                Pay international vendors up to 4 days faster than wire with Local Transfer—often on the same or next business day.
+              </tri-paragraph>
+              <tri-button type="primary">Make an international payment</tri-button>
             </div>
           </div>
         </div>
@@ -171,7 +235,7 @@
                 </button>
                 @if (faq.isOpen) {
                   <div class="faq-answer">
-                    <p>{{faq.answer}}</p>
+                    <tri-paragraph>{{faq.answer}}</tri-paragraph>
                   </div>
                 }
               </div>
@@ -192,120 +256,146 @@
         </div>
       </section>
     </div>
+  `,
+  styleUrls: ['./bill-payment.component.scss']
+})
+export class BillPaymentComponent {
+  paymentAmount = 1000;
+  selectedFromCurrency = 'USD';
+  selectedToCurrency = 'EUR';
+  convertedAmount = '856.45';
+  activeTestimonial = 0;
 
+  currencies: Currency[] = [
+    { code: 'USD', symbol: '$', flag: '🇺🇸' },
+    { code: 'EUR', symbol: '€', flag: '🇪🇺' },
+    { code: 'GBP', symbol: '£', flag: '🇬🇧' },
+    { code: 'MXN', symbol: '$', flag: '🇲🇽' },
+    { code: 'CAD', symbol: '$', flag: '🇨🇦' }
+  ];
 
+  testimonials: Testimonial[] = [
+    {
+      quote: "International payments has helped process payments more quickly and easily, simplifying the Accounts Payable process. It has saved me approximately half the time I used to spend.",
+      author: "Jose Godina",
+      position: "Sr. Corporate Accountant, Director",
+      company: "DIRECTV",
+      image: "/assets/testimonial1.jpg"
+    }
+  ];
 
+  securityFeatures: SecurityFeature[] = [
+    {
+      icon: "🔒",
+      title: "People who care",
+      description: "Dedicated risk, fraud, and security teams monitoring payments"
+    },
+    {
+      icon: "🛡️",
+      title: "Secure technology",
+      description: "Robust security measures, including data encryption and 2-factor authentication to protect your payments"
+    },
+    {
+      icon: "🎯",
+      title: "Comprehensive protection",
+      description: "AICPA SOC-standard compliant systems"
+    }
+  ];
 
+  speedCurrencies = ['₹', '$', '€', '¥', '₽', '¥'];
 
+  faqs: FAQ[] = [
+    {
+      question: "How many countries can BILL send payments to?",
+      answer: "BILL can send payments to over 120 countries worldwide, supporting multiple currencies and payment methods.",
+      isOpen: false
+    },
+    {
+      question: "How long will it take for my vendors to receive payments?",
+      answer: "Most international payments are received within 1-4 business days, depending on the destination country and payment method.",
+      isOpen: false
+    },
+    {
+      question: "What are the benefits of AP automation?",
+      answer: "AP automation reduces manual work, minimizes errors, improves cash flow visibility, and speeds up the entire payment process.",
+      isOpen: false
+    },
+    {
+      question: "Can I track my international payments?",
+      answer: "Yes, BILL provides real-time tracking for all international payments with detailed status updates throughout the process.",
+      isOpen: false
+    },
+    {
+      question: "Does my vendor get charged any fees for receiving funds?",
+      answer: "In most cases, recipients don't pay fees for receiving funds, though some local banks may charge small receiving fees.",
+      isOpen: false
+    }
+  ];
 
-// Variables
-$primary-color: #ff6b35;
-$secondary-color: #4a5568;
-$text-color: #2d3748;
-$light-bg: #f7fafc;
-$white: #ffffff;
-$border-color: #e2e8f0;
-$shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  partners: Partner[] = [
+    { name: "BOMBAS", logo: "/assets/bombas.svg" },
+    { name: "Squatch", logo: "/assets/squatch.svg" },
+    { name: "Solebot", logo: "/assets/solebot.svg" },
+    { name: "TEGUAR", logo: "/assets/teguar.svg" },
+    { name: "BEAR", logo: "/assets/bear.svg" }
+  ];
 
-// Breakpoints
-$mobile: 768px;
-$tablet: 1024px;
-$desktop: 1200px;
+  setActiveTestimonial(index: number): void {
+    this.activeTestimonial = index;
+  }
 
-// Mixins
-@mixin container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
-  
-  @media (max-width: $mobile) {
-    padding: 0 16px;
+  toggleFAQ(faq: FAQ): void {
+    faq.isOpen = !faq.isOpen;
   }
 }
 
-@mixin btn-base {
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-weight: 600;
-  text-decoration: none;
-  display: inline-block;
-  cursor: pointer;
-  border: none;
-  transition: all 0.3s ease;
-  font-size: 14px;
-  
-  @media (max-width: $mobile) {
-    padding: 10px 20px;
-    font-size: 13px;
-  }
-}
 
-@mixin btn-primary {
-  @include btn-base;
-  background: $primary-color;
-  color: $white;
-  
-  &:hover {
-    background: darken($primary-color, 10%);
-    transform: translateY(-2px);
-  }
-}
-
-@mixin btn-secondary {
-  @include btn-base;
-  background: transparent;
-  color: $primary-color;
-  border: 2px solid $primary-color;
-  
-  &:hover {
-    background: $primary-color;
-    color: $white;
-  }
-}
+// Using existing design system variables and mixins
 
 // Base styles
 .bill-payment-container {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   line-height: 1.6;
-  color: $text-color;
   overflow-x: hidden;
 }
 
 .container {
-  @include container;
-}
-
-.btn-primary {
-  @include btn-primary;
-}
-
-.btn-secondary {
-  @include btn-secondary;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--tri-space-200);
+  
+  @include breakpoint(sm, up) {
+    padding: 0 var(--tri-space-300);
+  }
+  
+  @include breakpoint(md, up) {
+    padding: 0 var(--tri-space-400);
+  }
 }
 
 .highlight {
-  color: $primary-color;
+  color: var(--primary-color);
 }
 
 // Hero Section
 .hero-section {
-  padding: 80px 0;
+  padding: var(--tri-space-800) 0;
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   
-  @media (max-width: $mobile) {
-    padding: 60px 0;
+  @include breakpoint(sm, up) {
+    padding: var(--tri-space-600) 0;
   }
 }
 
 .hero-content {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 60px;
+  gap: var(--tri-space-600);
   align-items: center;
   
-  @media (max-width: $tablet) {
+  @include breakpoint(md, up) {
     grid-template-columns: 1fr;
-    gap: 40px;
+    gap: var(--tri-space-400);
     text-align: center;
   }
 }
@@ -315,23 +405,23 @@ $desktop: 1200px;
     font-size: 3.5rem;
     font-weight: 700;
     line-height: 1.2;
-    margin-bottom: 24px;
+    margin-bottom: var(--tri-space-300);
     
-    @media (max-width: $tablet) {
+    @include breakpoint(md, up) {
       font-size: 2.8rem;
     }
     
-    @media (max-width: $mobile) {
+    @include breakpoint(sm, up) {
       font-size: 2.2rem;
     }
   }
   
   p {
     font-size: 1.1rem;
-    margin-bottom: 32px;
-    color: $secondary-color;
+    margin-bottom: var(--tri-space-400);
+    color: var(--secondary-color);
     
-    @media (max-width: $mobile) {
+    @include breakpoint(sm, up) {
       font-size: 1rem;
     }
   }
@@ -339,12 +429,12 @@ $desktop: 1200px;
 
 .hero-buttons {
   display: flex;
-  gap: 16px;
+  gap: var(--tri-space-200);
   flex-wrap: wrap;
   
-  @media (max-width: $mobile) {
+  @include breakpoint(sm, up) {
     flex-direction: column;
-    gap: 12px;
+    gap: var(--tri-space-150);
   }
 }
 
@@ -352,22 +442,22 @@ $desktop: 1200px;
   display: flex;
   justify-content: center;
   
-  @media (max-width: $tablet) {
+  @include breakpoint(md, up) {
     order: -1;
   }
 }
 
 .payment-interface {
-  background: $white;
+  background: var(--background-color, #ffffff);
   border-radius: 16px;
-  box-shadow: $shadow;
-  padding: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  padding: var(--tri-space-300);
   max-width: 400px;
   width: 100%;
   
-  @media (max-width: $mobile) {
+  @include breakpoint(sm, up) {
     max-width: 300px;
-    padding: 20px;
+    padding: var(--tri-space-250);
   }
 }
 
@@ -444,23 +534,23 @@ $desktop: 1200px;
 
 // Calculator Section
 .calculator-section {
-  padding: 80px 0;
-  background: $white;
+  padding: var(--tri-space-800) 0;
+  background: var(--background-color, #ffffff);
   
-  @media (max-width: $mobile) {
-    padding: 60px 0;
+  @include breakpoint(sm, up) {
+    padding: var(--tri-space-600) 0;
   }
 }
 
 .calculator-content {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 60px;
+  gap: var(--tri-space-600);
   align-items: center;
   
-  @media (max-width: $tablet) {
+  @include breakpoint(md, up) {
     grid-template-columns: 1fr;
-    gap: 40px;
+    gap: var(--tri-space-400);
   }
 }
 
@@ -469,40 +559,30 @@ $desktop: 1200px;
     font-size: 2.5rem;
     font-weight: 700;
     line-height: 1.2;
-    margin-bottom: 20px;
+    margin-bottom: var(--tri-space-250);
     
-    @media (max-width: $mobile) {
+    @include breakpoint(sm, up) {
       font-size: 2rem;
-    }
-  }
-  
-  p {
-    font-size: 1.1rem;
-    color: $secondary-color;
-    margin-bottom: 32px;
-    
-    @media (max-width: $mobile) {
-      font-size: 1rem;
     }
   }
 }
 
 .calculator-widget {
-  background: $light-bg;
+  background: var(--light-background, #f7fafc);
   border-radius: 16px;
-  padding: 32px;
-  box-shadow: $shadow;
+  padding: var(--tri-space-400);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   
-  @media (max-width: $mobile) {
-    padding: 24px;
+  @include breakpoint(sm, up) {
+    padding: var(--tri-space-300);
   }
 }
 
 .calculator-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 24px;
+  gap: var(--tri-space-150);
+  margin-bottom: var(--tri-space-300);
   font-weight: 600;
   
   .calculator-icon {
@@ -512,54 +592,48 @@ $desktop: 1200px;
 
 .calculator-form {
   .input-group {
-    margin-bottom: 20px;
+    margin-bottom: var(--tri-space-250);
     
     label {
       display: block;
-      margin-bottom: 8px;
+      margin-bottom: var(--tri-space-100);
       font-weight: 500;
-      color: $secondary-color;
+      color: var(--secondary-color);
     }
   }
   
   .currency-input {
     display: flex;
-    gap: 12px;
+    gap: var(--tri-space-150);
     
-    @media (max-width: $mobile) {
+    @include breakpoint(sm, up) {
       flex-direction: column;
-      gap: 8px;
+      gap: var(--tri-space-100);
+    }
+    
+    select, input {
+      padding: var(--tri-space-150);
+      border: 1px solid var(--border-color, #e2e8f0);
+      border-radius: 8px;
+      font-size: 14px;
+      
+      &:focus {
+        outline: none;
+        border-color: var(--primary-color);
+      }
     }
     
     select {
       flex: 1;
-      padding: 12px;
-      border: 1px solid $border-color;
-      border-radius: 8px;
-      background: $white;
-      font-size: 14px;
-      
-      &:focus {
-        outline: none;
-        border-color: $primary-color;
-      }
+      background: var(--background-color, #ffffff);
     }
     
     input {
       flex: 2;
-      padding: 12px;
-      border: 1px solid $border-color;
-      border-radius: 8px;
-      font-size: 14px;
-      
-      &:focus {
-        outline: none;
-        border-color: $primary-color;
-      }
       
       &[readonly] {
         background: #f8f9fa;
-        color: $secondary-color;
+        color: var(--secondary-color);
       }
     }
   }
@@ -567,7 +641,7 @@ $desktop: 1200px;
   .exchange-info {
     small {
       display: block;
-      color: $secondary-color;
+      color: var(--secondary-color);
       font-size: 0.75rem;
       margin-top: 4px;
     }
@@ -996,136 +1070,3 @@ $desktop: 1200px;
     display: none !important;
   }
 }
-
-
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-
-interface Testimonial {
-  quote: string;
-  author: string;
-  position: string;
-  company: string;
-  image: string;
-}
-
-interface FAQ {
-  question: string;
-  answer: string;
-  isOpen: boolean;
-}
-
-interface Partner {
-  name: string;
-  logo: string;
-}
-
-interface SecurityFeature {
-  icon: string;
-  title: string;
-  description: string;
-}
-
-interface Currency {
-  code: string;
-  symbol: string;
-  flag: string;
-}
-
-@Component({
-  selector: 'app-root',
- imports: [CommonModule, FormsModule],
-  templateUrl: './app.component.html',
-  styleUrl: './app.component.scss'
-})
-export class AppComponent {
-  paymentAmount = 1000;
-  selectedFromCurrency = 'USD';
-  selectedToCurrency = 'EUR';
-  convertedAmount = '856.45';
-  activeTestimonial = 0;
-
-  currencies: Currency[] = [
-    { code: 'USD', symbol: '$', flag: '🇺🇸' },
-    { code: 'EUR', symbol: '€', flag: '🇪🇺' },
-    { code: 'GBP', symbol: '£', flag: '🇬🇧' },
-    { code: 'MXN', symbol: '$', flag: '🇲🇽' },
-    { code: 'CAD', symbol: '$', flag: '🇨🇦' }
-  ];
-
-  testimonials: Testimonial[] = [
-    {
-      quote: "International payments has helped process payments more quickly and easily, simplifying the Accounts Payable process. It has saved me approximately half the time I used to spend.",
-      author: "Jose Godina",
-      position: "Sr. Corporate Accountant, Director",
-      company: "DIRECTV",
-      image: "/assets/testimonial1.jpg"
-    }
-  ];
-
-  securityFeatures: SecurityFeature[] = [
-    {
-      icon: "🔒",
-      title: "People who care",
-      description: "Dedicated risk, fraud, and security teams monitoring payments"
-    },
-    {
-      icon: "🛡️",
-      title: "Secure technology",
-      description: "Robust security measures, including data encryption and 2-factor authentication to protect your payments"
-    },
-    {
-      icon: "🎯",
-      title: "Comprehensive protection",
-      description: "AICPA SOC-standard compliant systems"
-    }
-  ];
-
-  speedCurrencies = ['₹', '$', '€', '¥', '₽', '¥'];
-
-  faqs: FAQ[] = [
-    {
-      question: "How many countries can BILL send payments to?",
-      answer: "BILL can send payments to over 120 countries worldwide, supporting multiple currencies and payment methods.",
-      isOpen: false
-    },
-    {
-      question: "How long will it take for my vendors to receive payments?",
-      answer: "Most international payments are received within 1-4 business days, depending on the destination country and payment method.",
-      isOpen: false
-    },
-    {
-      question: "What are the benefits of AP automation?",
-      answer: "AP automation reduces manual work, minimizes errors, improves cash flow visibility, and speeds up the entire payment process.",
-      isOpen: false
-    },
-    {
-      question: "Can I track my international payments?",
-      answer: "Yes, BILL provides real-time tracking for all international payments with detailed status updates throughout the process.",
-      isOpen: false
-    },
-    {
-      question: "Does my vendor get charged any fees for receiving funds?",
-      answer: "In most cases, recipients don't pay fees for receiving funds, though some local banks may charge small receiving fees.",
-      isOpen: false
-    }
-  ];
-
-  partners: Partner[] = [
-    { name: "BOMBAS", logo: "/assets/bombas.svg" },
-    { name: "Squatch", logo: "/assets/squatch.svg" },
-    { name: "Solebot", logo: "/assets/solebot.svg" },
-    { name: "TEGUAR", logo: "/assets/teguar.svg" },
-    { name: "BEAR", logo: "/assets/bear.svg" }
-  ];
-
-  setActiveTestimonial(index: number): void {
-    this.activeTestimonial = index;
-  }
-
-  toggleFAQ(faq: FAQ): void {
-    faq.isOpen = !faq.isOpen;
-  }
-}
-
