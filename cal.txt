@@ -92,3 +92,78 @@ describe('createAddNewAssetSchedule', () => {
         expect(mockAssetScheduleApiService.setAssetIds).toHaveBeenCalledWith(mockAssets);
     });
 });
+
+
+
+describe('onClickFilter', () => {
+    it('should open filter dialog and handle submit event', () => {
+        // Create a proper mock dialog ref with componentInstance
+        const mockDialogRef = {
+            componentInstance: {
+                submitEvent: new Subject<ModalSubmitEvent>()
+            },
+            afterClosed: () => of(null) // Add afterClosed method
+        };
+        
+        // Mock the dialog.open method to return our mock dialog ref
+        mockDialog.open.mockReturnValue(mockDialogRef as any);
+        
+        // Initialize component data needed for the test
+        component.filterModalData = {
+            elements: [
+                { label: 'Dashboard', selectedValue: mockSchedule },
+                { label: 'Year', selectedValue: ['2024'] }
+            ]
+        };
+        
+        component.onClickFilter();
+        
+        expect(mockDialog.open).toHaveBeenCalledWith(MaModalComponent, {
+            data: component.filterModalData
+        });
+        
+        // Simulate submit event
+        const submitEvent: ModalSubmitEvent = {
+            eventType: 'submit',
+            elements: [
+                { label: 'Dashboard', selectedValue: mockSchedule },
+                { label: 'Year', selectedValue: ['2024'] }
+            ]
+        };
+        mockDialogRef.componentInstance.submitEvent.next(submitEvent);
+        
+        expect(component.selectedYear).toEqual(['2024']);
+        expect(component.selectedAssetScheduleTitle).toBe('Test Schedule');
+    });
+
+    it('should handle groupDropdown event', () => {
+        const mockDialogRef = {
+            componentInstance: {
+                submitEvent: new Subject<ModalSubmitEvent>()
+            },
+            afterClosed: () => of(null)
+        };
+        mockDialog.open.mockReturnValue(mockDialogRef as any);
+        
+        component.filterModalData = {
+            elements: [
+                { label: 'Dashboard', selectedValue: mockSchedule }
+            ]
+        };
+        
+        component.onClickFilter();
+        
+        // Simulate groupDropdown event
+        const groupDropdownEvent: ModalSubmitEvent = {
+            eventType: 'groupDropdown',
+            elements: [
+                { label: 'Dashboard', selectedValue: mockSchedule }
+            ]
+        };
+        mockDialogRef.componentInstance.submitEvent.next(groupDropdownEvent);
+        
+        // Verify year filter element was updated
+        const yearElement = component.filterModalData.elements.find(el => el.label === 'Year');
+        expect(yearElement).toBeDefined();
+    });
+});
