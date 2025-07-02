@@ -167,3 +167,72 @@ describe('onClickFilter', () => {
         expect(yearElement).toBeDefined();
     });
 });
+
+
+describe('onClickFilter', () => {
+    let mockDialogRef: any;
+    let submitSubject: Subject<ModalSubmitEvent>;
+
+    beforeEach(() => {
+        submitSubject = new Subject<ModalSubmitEvent>();
+        mockDialogRef = {
+            componentInstance: {
+                submitEvent: submitSubject.asObservable(),
+                // Add any other required component instance properties
+            },
+            afterClosed: () => of(null),
+            close: jest.fn(),
+            // Add other required MatDialogRef methods
+        };
+
+        mockDialog.open.mockReturnValue(mockDialogRef);
+        
+        // Initialize required component data
+        component.filterModalData = {
+            elements: [
+                { label: 'Dashboard', selectedValue: mockSchedule, groups: [] },
+                { label: 'Year', selectedValue: ['2024'], values: [] }
+            ]
+        };
+    });
+
+    afterEach(() => {
+        submitSubject.complete();
+    });
+
+    it('should open filter dialog and handle submit event', () => {
+        component.onClickFilter();
+        
+        expect(mockDialog.open).toHaveBeenCalledWith(MaModalComponent, {
+            data: component.filterModalData
+        });
+
+        // Simulate submit event
+        const submitEvent: ModalSubmitEvent = {
+            eventType: 'submit',
+            elements: [
+                { label: 'Dashboard', selectedValue: mockSchedule },
+                { label: 'Year', selectedValue: ['2024'] }
+            ]
+        };
+        submitSubject.next(submitEvent);
+
+        expect(component.selectedYear).toEqual(['2024']);
+        expect(component.selectedAssetScheduleTitle).toBe('Test Schedule');
+    });
+
+    it('should handle groupDropdown event', () => {
+        component.onClickFilter();
+
+        // Simulate groupDropdown event
+        const groupDropdownEvent: ModalSubmitEvent = {
+            eventType: 'groupDropdown',
+            elements: [
+                { label: 'Dashboard', selectedValue: mockSchedule }
+            ]
+        };
+        submitSubject.next(groupDropdownEvent);
+
+        expect(component.setFilterYearElement).toHaveBeenCalled();
+    });
+});
