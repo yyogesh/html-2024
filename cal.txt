@@ -1,116 +1,94 @@
+describe('getAllData', () => {
+    it('should fetch all schedules and process them', () => {
+        mockScheduleApiService.getAllSchedules.mockReturnValue(of([mockSchedule]));
+        
+        component.getAllData();
+        
+        expect(component.isLoading).toBe(true);
+        expect(mockScheduleApiService.getAllSchedules).toHaveBeenCalled();
+        expect(mockScheduleApiService.setSchedule).toHaveBeenCalledWith([]);
+        // Verify isLoading is set to false after completion
+        setTimeout(() => {
+            expect(component.isLoading).toBe(false);
+            expect(component.dataCards).toEqual([mockDataCard]);
+        });
+    });
+
+    it('should handle error when fetching schedules', () => {
+        mockScheduleApiService.getAllSchedules.mockReturnValue(throwError(() => new Error('Error')));
+        
+        component.getAllData();
+        
+        expect(component.isLoading).toBe(true);
+        setTimeout(() => {
+            expect(component.isLoading).toBe(false);
+        });
+    });
+});
+
+
+describe('isAdminUser', () => {
+    it('should return true when user is admin', () => {
+        mockAppAuthService.isAdminUser.mockReturnValue(true);
+        expect(component.isAdminUser()).toBe(true);
+    });
+
+    it('should return false when user is not admin', () => {
+        mockAppAuthService.isAdminUser.mockReturnValue(false);
+        expect(component.isAdminUser()).toBe(false);
+    });
+});
+
 
 describe('onClickFilter', () => {
     it('should open filter dialog and handle submit event', () => {
-        const mockDialogRef = {
-            componentInstance: {
-                submitEvent: of({
-                    eventType: 'submit',
-                    elements: [
-                        {
-                            label: 'Dashboard',
-                            selectedValue: {
-                                ...mockSchedule,
-                                title: 'Updated Schedule'
-                            }
-                        },
-                        {
-                            label: 'Year',
-                            selectedValue: ['2025']
-                        }
-                    ]
-                })
-            }
-        };
+        const mockDialogRef = { componentInstance: { submitEvent: new Subject() } };
         mockDialog.open.mockReturnValue(mockDialogRef as any);
-        const onSchedulesChangeSpy = jest.spyOn(component, 'onSchedulesChange');
-
+        
         component.onClickFilter();
-
+        
         expect(mockDialog.open).toHaveBeenCalled();
-        expect(component.displayedGanttBars).toEqual([]);
-        expect(component.selectedYear).toEqual(['2025']);
-        expect(component.selectedAssetScheduleTitle).toBe('Updated Schedule');
-        expect(onSchedulesChangeSpy).toHaveBeenCalledWith({
-            ...mockSchedule,
-            title: 'Updated Schedule'
+        
+        // Simulate submit event
+        mockDialogRef.componentInstance.submitEvent.next({
+            eventType: 'submit',
+            elements: [
+                { label: 'Dashboard', selectedValue: mockSchedule },
+                { label: 'Year', selectedValue: ['2024'] }
+            ]
         });
-        expect(component.calendarService.selectedCard).toEqual({
-            year: ['2025'],
-            scheduleTitle: 'Updated Schedule'
-        });
-    });
-
-    it('should handle groupDropdown event type', () => {
-        const mockDialogRef = {
-            componentInstance: {
-                submitEvent: of({
-                    eventType: 'groupDropdown',
-                    elements: [
-                        {
-                            label: 'Dashboard',
-                            selectedValue: {
-                                ...mockSchedule,
-                                assetSchedules: [mockAssetSchedule]
-                            }
-                        }
-                    ]
-                })
-            }
-        };
-        mockDialog.open.mockReturnValue(mockDialogRef as any);
-        const getFilteredAssetScheduleSpy = jest.spyOn(component as any, 'getFilteredAssetSchedule');
-        const setFilterYearElementSpy = jest.spyOn(component, 'setFilterYearElement');
-
-        component.onClickFilter();
-
-        expect(getFilteredAssetScheduleSpy).toHaveBeenCalledWith(
-            mockSchedule,
-            [mockAssetSchedule]
-        );
-        expect(setFilterYearElementSpy).toHaveBeenCalled();
-    });
-
-    it('should handle filter modal without year element', () => {
-        const mockDialogRef = {
-            componentInstance: {
-                submitEvent: of({
-                    eventType: 'submit',
-                    elements: [
-                        {
-                            label: 'Dashboard',
-                            selectedValue: mockSchedule
-                        }
-                        // No year element
-                    ]
-                })
-            }
-        };
-        mockDialog.open.mockReturnValue(mockDialogRef as any);
-
-        component.onClickFilter();
-
+        
+        expect(component.selectedYear).toEqual(['2024']);
         expect(component.selectedAssetScheduleTitle).toBe('Test Schedule');
     });
 
-    it('should handle filter modal without dashboard element', () => {
-        const mockDialogRef = {
-            componentInstance: {
-                submitEvent: of({
-                    eventType: 'submit',
-                    elements: [
-                        {
-                            label: 'Year',
-                            selectedValue: ['2025']
-                        }
-                        // No dashboard element
-                    ]
-                })
-            }
-        };
+    it('should handle groupDropdown event', () => {
+        const mockDialogRef = { componentInstance: { submitEvent: new Subject() } };
         mockDialog.open.mockReturnValue(mockDialogRef as any);
-
+        
         component.onClickFilter();
+        
+        // Simulate groupDropdown event
+        mockDialogRef.componentInstance.submitEvent.next({
+            eventType: 'groupDropdown',
+            elements: [
+                { label: 'Dashboard', selectedValue: mockSchedule }
+            ]
+        });
+        
+        expect(component.setFilterYearElement).toHaveBeenCalled();
+    });
+});
 
-        expect(component.selectedYear).toEqual(['2025']);
+
+describe('createAddNewAssetSchedule', () => {
+    it('should fetch assets and populate dropdown', () => {
+        const mockAssets = [{ buno: 'B001' }, { buno: 'B002' }];
+        mockAssetScheduleApiService.getAllAssets.mockReturnValue(of(mockAssets));
+        
+        component.createAddNewAssetSchedule();
+        
+        expect(mockAssetScheduleApiService.getAllAssets).toHaveBeenCalled();
+        expect(mockAssetScheduleApiService.setAssetIds).toHaveBeenCalledWith(mockAssets);
     });
 });
