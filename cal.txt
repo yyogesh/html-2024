@@ -236,3 +236,43 @@ describe('onClickFilter', () => {
         expect(component.setFilterYearElement).toHaveBeenCalled();
     });
 });
+
+
+
+describe('createAddNewAssetSchedule', () => {
+    it('should fetch assets and populate dropdown', () => {
+        const mockAssets = [{ buno: 'B001' }, { buno: 'B002' }];
+        mockAssetScheduleApiService.getAllAssets.mockReturnValue(of(mockAssets));
+        
+        component.createAddNewAssetSchedule();
+        
+        expect(mockAssetScheduleApiService.getAllAssets).toHaveBeenCalled();
+        expect(mockAssetScheduleApiService.setAssetIds).toHaveBeenCalledWith(mockAssets);
+    });
+});
+
+describe('createAssetSchedule', () => {
+    it('should successfully create asset schedule', () => {
+        mockAssetScheduleApiService.createAssetSchedule.mockReturnValue(of(123));
+        
+        component.createAssetSchedule();
+        
+        expect(mockAssetScheduleApiService.createAssetSchedule).toHaveBeenCalledWith(component.assetScheduleToBeCreated);
+        setTimeout(() => {
+            expect(mockScheduleService.createAssetSchedule).toHaveBeenCalled();
+            expect(mockNotificationsService.success).toHaveBeenCalled();
+            expect(mockScheduleApiService.setSchedule).toHaveBeenCalledWith([]);
+            expect(component.getAllData).toHaveBeenCalled();
+        });
+    });
+
+    it('should handle error when creating asset schedule', () => {
+        mockAssetScheduleApiService.createAssetSchedule.mockReturnValue(throwError(() => new Error('Error')));
+        
+        component.createAssetSchedule();
+        
+        setTimeout(() => {
+            expect(mockNotificationsService.error).toHaveBeenCalled();
+        });
+    });
+});
