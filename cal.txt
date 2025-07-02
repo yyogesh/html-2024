@@ -1,278 +1,94 @@
-describe('getAllData', () => {
-    it('should fetch all schedules and process them', () => {
-        mockScheduleApiService.getAllSchedules.mockReturnValue(of([mockSchedule]));
+describe('onSearchValueChanged', () => {
+    it('should filter data cards based on search term', () => {
+        component.dataCards = [
+            { ...mockDataCard, secondRow: 'Asset1' },
+            { ...mockDataCard, secondRow: 'Asset2' }
+        ];
         
-        component.getAllData();
+        component.onSearchValueChanged('Asset1');
         
-        expect(component.isLoading).toBe(true);
-        expect(mockScheduleApiService.getAllSchedules).toHaveBeenCalled();
-        expect(mockScheduleApiService.setSchedule).toHaveBeenCalledWith([]);
-        // Verify isLoading is set to false after completion
-        setTimeout(() => {
-            expect(component.isLoading).toBe(false);
-            expect(component.dataCards).toEqual([mockDataCard]);
-        });
+        expect(component.dataCards[0].visible).toBe(true);
+        expect(component.dataCards[1].visible).toBe(false);
     });
 
-    it('should handle error when fetching schedules', () => {
-        mockScheduleApiService.getAllSchedules.mockReturnValue(throwError(() => new Error('Error')));
-        
-        component.getAllData();
-        
-        expect(component.isLoading).toBe(true);
-        setTimeout(() => {
-            expect(component.isLoading).toBe(false);
-        });
+    it('should track search event when term is not empty', () => {
+        component.onSearchValueChanged('Asset1');
+        expect(mockAppAnalyticsService.trackEvent).toHaveBeenCalled();
+    });
+
+    it('should not track search event when term is empty', () => {
+        component.onSearchValueChanged('');
+        expect(mockAppAnalyticsService.trackEvent).not.toHaveBeenCalled();
     });
 });
 
-
-describe('isAdminUser', () => {
-    it('should return true when user is admin', () => {
-        mockAppAuthService.isAdminUser.mockReturnValue(true);
-        expect(component.isAdminUser()).toBe(true);
+describe('onClickDataCard', () => {
+    it('should navigate to overview page', () => {
+        component.onClickDataCard({ data: { secondRow: 'Asset1' } });
+        expect(mockRouter.navigate).toHaveBeenCalledWith(['/V3/platform/Asset1/overview']);
+        expect(mockAppAnalyticsService.trackEvent).toHaveBeenCalled();
     });
 
-    it('should return false when user is not admin', () => {
-        mockAppAuthService.isAdminUser.mockReturnValue(false);
-        expect(component.isAdminUser()).toBe(false);
+    it('should show error when navigation fails', () => {
+        component.onClickDataCard({ data: {} });
+        expect(mockNotificationsService.error).toHaveBeenCalled();
     });
 });
 
-
-describe('onClickFilter', () => {
-    it('should open filter dialog and handle submit event', () => {
+describe('onClickAddNew', () => {
+    it('should open add new dialog and handle submit', () => {
         const mockDialogRef = { componentInstance: { submitEvent: new Subject() } };
         mockDialog.open.mockReturnValue(mockDialogRef as any);
+        mockAssetScheduleApiService.getAllAssets.mockReturnValue(of([]));
         
-        component.onClickFilter();
+        component.onClickAddNew();
         
         expect(mockDialog.open).toHaveBeenCalled();
-        
-        // Simulate submit event
-        mockDialogRef.componentInstance.submitEvent.next({
-            eventType: 'submit',
-            elements: [
-                { label: 'Dashboard', selectedValue: mockSchedule },
-                { label: 'Year', selectedValue: ['2024'] }
-            ]
-        });
-        
-        expect(component.selectedYear).toEqual(['2024']);
-        expect(component.selectedAssetScheduleTitle).toBe('Test Schedule');
-    });
-
-    it('should handle groupDropdown event', () => {
-        const mockDialogRef = { componentInstance: { submitEvent: new Subject() } };
-        mockDialog.open.mockReturnValue(mockDialogRef as any);
-        
-        component.onClickFilter();
-        
-        // Simulate groupDropdown event
-        mockDialogRef.componentInstance.submitEvent.next({
-            eventType: 'groupDropdown',
-            elements: [
-                { label: 'Dashboard', selectedValue: mockSchedule }
-            ]
-        });
-        
-        expect(component.setFilterYearElement).toHaveBeenCalled();
-    });
-});
-
-
-describe('createAddNewAssetSchedule', () => {
-    it('should fetch assets and populate dropdown', () => {
-        const mockAssets = [{ buno: 'B001' }, { buno: 'B002' }];
-        mockAssetScheduleApiService.getAllAssets.mockReturnValue(of(mockAssets));
-        
-        component.createAddNewAssetSchedule();
-        
+        expect(mockAppAnalyticsService.trackEvent).toHaveBeenCalled();
         expect(mockAssetScheduleApiService.getAllAssets).toHaveBeenCalled();
-        expect(mockAssetScheduleApiService.setAssetIds).toHaveBeenCalledWith(mockAssets);
-    });
-});
-
-
-
-describe('onClickFilter', () => {
-    it('should open filter dialog and handle submit event', () => {
-        // Create a proper mock dialog ref with componentInstance
-        const mockDialogRef = {
-            componentInstance: {
-                submitEvent: new Subject<ModalSubmitEvent>()
-            },
-            afterClosed: () => of(null) // Add afterClosed method
-        };
-        
-        // Mock the dialog.open method to return our mock dialog ref
-        mockDialog.open.mockReturnValue(mockDialogRef as any);
-        
-        // Initialize component data needed for the test
-        component.filterModalData = {
-            elements: [
-                { label: 'Dashboard', selectedValue: mockSchedule },
-                { label: 'Year', selectedValue: ['2024'] }
-            ]
-        };
-        
-        component.onClickFilter();
-        
-        expect(mockDialog.open).toHaveBeenCalledWith(MaModalComponent, {
-            data: component.filterModalData
-        });
         
         // Simulate submit event
-        const submitEvent: ModalSubmitEvent = {
+        mockDialogRef.componentInstance.submitEvent.next({
             eventType: 'submit',
-            elements: [
-                { label: 'Dashboard', selectedValue: mockSchedule },
-                { label: 'Year', selectedValue: ['2024'] }
-            ]
-        };
-        mockDialogRef.componentInstance.submitEvent.next(submitEvent);
+            elements: []
+        });
         
-        expect(component.selectedYear).toEqual(['2024']);
-        expect(component.selectedAssetScheduleTitle).toBe('Test Schedule');
-    });
-
-    it('should handle groupDropdown event', () => {
-        const mockDialogRef = {
-            componentInstance: {
-                submitEvent: new Subject<ModalSubmitEvent>()
-            },
-            afterClosed: () => of(null)
-        };
-        mockDialog.open.mockReturnValue(mockDialogRef as any);
-        
-        component.filterModalData = {
-            elements: [
-                { label: 'Dashboard', selectedValue: mockSchedule }
-            ]
-        };
-        
-        component.onClickFilter();
-        
-        // Simulate groupDropdown event
-        const groupDropdownEvent: ModalSubmitEvent = {
-            eventType: 'groupDropdown',
-            elements: [
-                { label: 'Dashboard', selectedValue: mockSchedule }
-            ]
-        };
-        mockDialogRef.componentInstance.submitEvent.next(groupDropdownEvent);
-        
-        // Verify year filter element was updated
-        const yearElement = component.filterModalData.elements.find(el => el.label === 'Year');
-        expect(yearElement).toBeDefined();
+        expect(mockCalendarService.prepareAssetScheduleData).toHaveBeenCalled();
     });
 });
 
 
-describe('onClickFilter', () => {
-    let mockDialogRef: any;
-    let submitSubject: Subject<ModalSubmitEvent>;
-
+describe('setDateRangeDate', () => {
     beforeEach(() => {
-        submitSubject = new Subject<ModalSubmitEvent>();
-        mockDialogRef = {
-            componentInstance: {
-                submitEvent: submitSubject.asObservable(),
-                // Add any other required component instance properties
+        component.ganttBars = [
+            { 
+                ...mockGanttBar,
+                startDate: new Date().toLocaleDateString('en-US', dateOptions),
+                endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', dateOptions)
             },
-            afterClosed: () => of(null),
-            close: jest.fn(),
-            // Add other required MatDialogRef methods
-        };
-
-        mockDialog.open.mockReturnValue(mockDialogRef);
-        
-        // Initialize required component data
-        component.filterModalData = {
-            elements: [
-                { label: 'Dashboard', selectedValue: mockSchedule, groups: [] },
-                { label: 'Year', selectedValue: ['2024'], values: [] }
-            ]
-        };
+            {
+                ...mockGanttBar,
+                barTitle: 'Asset2',
+                startDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', dateOptions)
+            }
+        ];
     });
 
-    afterEach(() => {
-        submitSubject.complete();
+    it('should filter gantt bars for 6 months range', () => {
+        component.dateRange.set('6 Months');
+        component.setDateRangeDate();
+        expect(component.displayedGanttBars.length).toBe(1);
     });
 
-    it('should open filter dialog and handle submit event', () => {
-        component.onClickFilter();
-        
-        expect(mockDialog.open).toHaveBeenCalledWith(MaModalComponent, {
-            data: component.filterModalData
-        });
-
-        // Simulate submit event
-        const submitEvent: ModalSubmitEvent = {
-            eventType: 'submit',
-            elements: [
-                { label: 'Dashboard', selectedValue: mockSchedule },
-                { label: 'Year', selectedValue: ['2024'] }
-            ]
-        };
-        submitSubject.next(submitEvent);
-
-        expect(component.selectedYear).toEqual(['2024']);
-        expect(component.selectedAssetScheduleTitle).toBe('Test Schedule');
+    it('should filter gantt bars for 1 year range', () => {
+        component.dateRange.set('1 Years');
+        component.setDateRangeDate();
+        expect(component.displayedGanttBars.length).toBe(1);
     });
 
-    it('should handle groupDropdown event', () => {
-        component.onClickFilter();
-
-        // Simulate groupDropdown event
-        const groupDropdownEvent: ModalSubmitEvent = {
-            eventType: 'groupDropdown',
-            elements: [
-                { label: 'Dashboard', selectedValue: mockSchedule }
-            ]
-        };
-        submitSubject.next(groupDropdownEvent);
-
-        expect(component.setFilterYearElement).toHaveBeenCalled();
-    });
-});
-
-
-
-describe('createAddNewAssetSchedule', () => {
-    it('should fetch assets and populate dropdown', () => {
-        const mockAssets = [{ buno: 'B001' }, { buno: 'B002' }];
-        mockAssetScheduleApiService.getAllAssets.mockReturnValue(of(mockAssets));
-        
-        component.createAddNewAssetSchedule();
-        
-        expect(mockAssetScheduleApiService.getAllAssets).toHaveBeenCalled();
-        expect(mockAssetScheduleApiService.setAssetIds).toHaveBeenCalledWith(mockAssets);
-    });
-});
-
-describe('createAssetSchedule', () => {
-    it('should successfully create asset schedule', () => {
-        mockAssetScheduleApiService.createAssetSchedule.mockReturnValue(of(123));
-        
-        component.createAssetSchedule();
-        
-        expect(mockAssetScheduleApiService.createAssetSchedule).toHaveBeenCalledWith(component.assetScheduleToBeCreated);
-        setTimeout(() => {
-            expect(mockScheduleService.createAssetSchedule).toHaveBeenCalled();
-            expect(mockNotificationsService.success).toHaveBeenCalled();
-            expect(mockScheduleApiService.setSchedule).toHaveBeenCalledWith([]);
-            expect(component.getAllData).toHaveBeenCalled();
-        });
-    });
-
-    it('should handle error when creating asset schedule', () => {
-        mockAssetScheduleApiService.createAssetSchedule.mockReturnValue(throwError(() => new Error('Error')));
-        
-        component.createAssetSchedule();
-        
-        setTimeout(() => {
-            expect(mockNotificationsService.error).toHaveBeenCalled();
-        });
+    it('should show all gantt bars when range is none', () => {
+        component.dateRange.set('none');
+        component.setDateRangeDate();
+        expect(component.displayedGanttBars.length).toBe(2);
     });
 });
