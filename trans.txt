@@ -1,0 +1,116 @@
+import { HttpClient } from "@angular/common/http";
+import { map } from "rxjs/operators";
+import { BehaviorSubject, Observable } from 'rxjs';
+import { Injectable } from "@angular/core";
+import { AppConsts } from "../utilities/AppConsts";
+import { API } from "../constants/api-url";
+import { ITranslationResponse } from "../models/translation-response.model";
+import { ITranslation } from "../models/translation.model";
+import { transformResult } from "../utilities/service.extensions";
+import { LANGUAGE } from "../constants/language";
+import { SessionStorageHelper } from "../helpers/SessionStorage.helper";
+
+@Injectable({
+    providedIn: 'root'
+})
+export class TranslationService {
+
+    private baseUrl: string;
+
+    private attestationTranslateS$ = new BehaviorSubject<string>(LANGUAGE.ENGLISH);
+
+    private translateS$ = new BehaviorSubject<ITranslation>({});
+    dualTranslate: ITranslationResponse[] = [];
+
+    private bigTranslateS$ = new BehaviorSubject<ITranslation>({});
+    dualBigTranslate: ITranslationResponse[] = [];
+
+    public translate$ = this.translateS$.asObservable();
+    public bigTranslate$ = this.bigTranslateS$.asObservable();
+    public attestationTranslate$ = this.attestationTranslateS$.asObservable();
+
+    constructor(private readonly _httpClient: HttpClient, private appSession: SessionStorageHelper) {
+        this.baseUrl = AppConsts.remoteServiceBaseUrl;
+
+    }
+
+    getAllTranslation(): Observable<ITranslationResponse[]> {
+        return this._httpClient.get(`${this.baseUrl}${API.GetAllMemberPortalTranslation}`).pipe(map(translation => translation as ITranslationResponse[]));
+    }
+
+    getAllBigTranslation(): Observable<ITranslationResponse[]> {
+        return this._httpClient.get(`${this.baseUrl}${API.GetAllMemberPortalBigTranslation}`).pipe(map(translation => translation as ITranslationResponse[]))
+    }
+
+    getComponentWiseTranslation(component: string): Observable<ITranslationResponse[]> {
+        return this._httpClient.get(`${this.baseUrl}${API.GetComponentWiseMemberPortalTranslation + component}`).pipe(map(translation => translation as ITranslationResponse[]))
+    }
+
+    getComponentWiseBigTranslation(component: string): Observable<ITranslationResponse[]> {
+        return this._httpClient.get(`${this.baseUrl}${API.GetComponentWiseMemberPortalBigTranslation + component}`).pipe(map(translation => translation as ITranslationResponse[]))
+    }
+
+    convertTranslation(language: undefined | string, data: ITranslationResponse[]): ITranslation {
+        const dualTranslate = transformResult(data, null);
+        return dualTranslate.reduce((trans: any, obj: ITranslationResponse) => {
+            trans[obj.resourceKey] = language === LANGUAGE.ENGLISH ? obj.translationText : obj.translationTextFrench;
+            return trans;
+        }, {});
+    }
+
+    setTranslate(language: string): void {
+        const translationObj = this.dualTranslate.reduce((trans: any, obj: ITranslationResponse) => {
+            trans[obj.resourceKey] = language === LANGUAGE.ENGLISH ? obj.translationText : obj.translationTextFrench;
+            return trans;
+        }, {});
+        this.translateS$.next({ ...translationObj });
+    }
+
+    setBigTranslate(language: string): void {
+        const translationObj = this.dualBigTranslate.reduce((trans: any, obj: ITranslationResponse) => {
+            trans[obj.resourceKey] = language === LANGUAGE.ENGLISH ? obj.translationText : obj.translationTextFrench;
+            return trans;
+        }, {});
+        this.bigTranslateS$.next({ ...translationObj });
+    }
+
+    setAttestationTranslate(language: string): void {
+        this.attestationTranslateS$.next(language);
+    }
+
+    // common method to set language 
+    private languageSoruce = new BehaviorSubject("en-CA");
+    currentLanguage = this.languageSoruce.asObservable();
+
+    changeLanguage(language: string) {
+        const currentValue = this.languageSoruce.value;
+        this.setABPLanguage(language);
+        if (currentValue !== language)
+            this.languageSoruce.next(language);
+    }
+
+    setABPLanguage(language: string) {
+        if (abp.localization.currentLanguage && language) {
+            abp.localization.currentLanguage.name = language;
+        }
+    }
+
+    setSelectedLanguage(language: string): void {
+        let _langEnumValue: string = language == "fr" ? LANGUAGE.FRENCH : LANGUAGE.ENGLISH;
+        this.appSession.setSessionStorage('language', _langEnumValue);
+        this.setABPLanguage(language);
+        this.changeLanguage(language);
+
+    }
+
+
+    private titlelanguageSubject = new BehaviorSubject<LANGUAGE>(LANGUAGE.ENGLISH);
+    titlelanguageO$ = this.titlelanguageSubject.asObservable();
+    
+    getCurrentLanguage(): LANGUAGE {
+    return this.titlelanguageSubject.value;
+    }
+    setLanguage(language: LANGUAGE) {
+    this.titlelanguageSubject.next(language);
+    }
+}
