@@ -1,0 +1,98 @@
+import { Component, Input, OnInit, OnDestroy } from '@angular/core';
+import { CommonService } from '../../../../shared/services/common.service';
+import { AppConsts } from '../../../../shared/utilities/AppConsts';
+import { formatter } from '../../../../shared/utilities/formatter';
+import { IMemberSalaryDto } from '../../services/interface/IMemberSalaryDto';
+import { IChildLookup } from '../../../../shared/models/lookup.model';
+import { finalize } from 'rxjs/operators';
+import { transformResult } from '../../../../shared/utilities/service.extensions';
+import { ICreateOrEditPersonEmailDto } from '../../services/interface/ICreateOrEditPersonEmailDto';
+import { ICreateOrEditPersonDto } from '../../services/interface/ICreateOrEditPersonDto';
+import { ICreateOrEditPersonAddressDto } from '../../services/interface/ICreateOrEditPersonAddressDto';
+import { ICreateOrEditMemberDto } from '../../services/interface/ICreateOrEditMemberDto';
+import { TranslationService } from '../../../../shared/services/translation.service';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
+
+@Component({
+  selector: 'app-member-info',
+  templateUrl: './member-info.component.html',
+  styleUrl: './member-info.component.scss'
+})
+export class MemberInfoComponent implements OnInit, OnDestroy {
+  @Input() member: ICreateOrEditMemberDto;
+  @Input() person: ICreateOrEditPersonDto;
+  @Input() personAddress: ICreateOrEditPersonAddressDto;
+  @Input() personEmailAddress: ICreateOrEditPersonEmailDto;
+  @Input() Infoprofiledata: any;
+  @Input() memberSalary: IMemberSalaryDto;
+  @Input() province: any;
+  MultipleResultData: any;
+  gender: IChildLookup[];
+  //smoker: OptionsetDto[];
+  //maritalStatus: OptionsetDto[];
+  legalName: string;
+  emailAddress: string;
+  annularSalary: string;
+  dateOfBirth: string;
+  address: string;
+  city: string;
+  pincode: string;
+  hireDate: string;
+  memberGender: string;
+  stop$ = new Subject<void>();
+  constructor(private commonService: CommonService,
+    private _formatter: formatter,
+    private readonly _translationService: TranslationService
+  ) {
+  }
+  ngOnInit(): void {
+    this.bindLookupItems();
+    this._translationService.currentLanguage.pipe(takeUntil(this.stop$)).subscribe(_ => {
+      this.bindMemberData();
+    });
+  }
+
+   ngOnDestroy(): void {
+    this.stop$.next();
+    this.stop$.complete();
+  }
+
+  ngOnChanges(): void {
+    this.bindMemberData();
+  }
+
+  private bindLookupItems() {
+    let lookupseachitems: any = [
+      AppConsts.lookupKeys.gender
+    ];
+
+    this.commonService.getLookupDataByParent(lookupseachitems)
+      .pipe(finalize(() => { this.bindMemberData(); }))
+      .subscribe({
+        next: (result) => {
+          let _result = transformResult(result, null);
+          this.MultipleResultData = _result;
+          if (this.MultipleResultData != null && this.MultipleResultData.length > 0) {
+            this.gender = this.MultipleResultData.filter((item: any) => item.parentInternalName == AppConsts.lookupKeys.gender)[0].childData;
+            //this.smoker = this.MultipleResultData.filter((item: any) => item.itemKey == AppConsts.lookupKeys.smokerStatus)[0].resultValue.items;
+            //this.maritalStatus = this.MultipleResultData.filter((item: any) => item.itemKey == AppConsts.lookupKeys.maritalStatus)[0].resultValue.items;
+          }
+        }
+      });
+  }
+
+  private bindMemberData() {
+    this.legalName = this.person ? this.person.firstName + ' ' + (this.person.secondName == null ? '' : this.person.secondName + ' ') + this.person.lastName || '' : '';
+    this.emailAddress = this.personEmailAddress ? this.personEmailAddress.emailAddress || '' : '';
+    this.annularSalary = this.memberSalary ? this._formatter.formattedCurrency(this.memberSalary.salaryAmt) || '' : '';
+    this.dateOfBirth = this.person ? this._formatter.longdateformat(this.person.dateOfBirth || '') : '';
+    this.address = this.personAddress ? this.personAddress.address1 || '' : '';
+    this.city = this.personAddress ? this.personAddress.city || '' : '';
+    //this.province = this.personAddress ? this.personAddress.provinceStateId?.toString() || '' : '';
+    this.pincode = this.personAddress ? this.personAddress.postalZipCode || '' : '';
+    this.hireDate = this.member ? this._formatter.longdateformat(this.member.dateofhire || '') : '';
+    this.memberGender = this.gender && this.person ? this.gender.find(y => y.childLookUpId === this.person.gender)?.childInternalName || '' : '';
+  }
+}
+
