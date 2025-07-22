@@ -1,0 +1,429 @@
+using API.v2.ApiServices.FieldInspectionForm;
+using API.v2.ApiServices.FieldInspectionForm.Models;
+using API.v2.ApiServices.Reports.FieldInspectionForm.Models;
+using API.v2.ApiServices.Reports.Shared;
+using API.v2.DBFirst.Models;
+using API.v2.Tests.Support;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Moq;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Threading.Tasks;
+
+namespace API.v2.Tests.ApiServices.FieldInspectionForm
+{
+    [TestClass]
+    public class FieldInspectionFormRoutesTests : SeedProUnitTestBase
+    {
+        private Mock<IIronPdfReport> _ironPdfReportMock;
+        private Mock<IFieldInspectionFormRepository> _fieldInspectionFormRepositoryMock;
+        private Mock<IStorageService> _storageServiceMock;
+        private Mock<IFieldInspectionFormDataService> _fieldInspectionFormDataServiceMock;
+        
+        private FieldInspectionFormRoutes _fieldInspectionFormRoutes;
+        private string _pchsId = "PLANT123456789";
+        private int _timezoneOffset = -300;
+        private List<int> _currentFieldIds = new List<int> { 1, 2, 3 };
+        private List<int> _fieldInspectionFormIds = new List<int> { 101, 102, 103 };
+
+        [TestInitialize]
+        public override void InitializeBase()
+        {
+            base.InitializeBase();
+            
+            _ironPdfReportMock = new Mock<IIronPdfReport>();
+            _fieldInspectionFormRepositoryMock = new Mock<IFieldInspectionFormRepository>();
+            _storageServiceMock = new Mock<IStorageService>();
+            _fieldInspectionFormDataServiceMock = new Mock<IFieldInspectionFormDataService>();
+            
+            _fieldInspectionFormRoutes = new FieldInspectionFormRoutes(
+                SeedProUserMock.Object,
+                ContextFactoryForTest,
+                _ironPdfReportMock.Object,
+                _fieldInspectionFormRepositoryMock.Object,
+                _storageServiceMock.Object,
+                _fieldInspectionFormDataServiceMock.Object);
+        }
+
+        [TestMethod]
+        public async Task Print_ShouldReturnPdf_WhenAuthorizedAndValidParameters()
+        {
+            // Arrange
+            SeedProUserMock
+                .Setup(x => x.IsUserAuthorized("UpdateFieldInspectionForm", _pchsId))
+                .ReturnsAsync(true);
+
+            var reportParameters = new FieldInspectionFormParameters
+            {
+                PchsId = _pchsId,
+                TimezoneOffset = _timezoneOffset,
+                ReportsToPrint = new List<FieldInspectionFormToPrint>
+                {
+                    new FieldInspectionFormToPrint { Area = 10.5m, BrazilInspectionId = 1, CurrentFieldId = 1 },
+                    new FieldInspectionFormToPrint { Area = 15.2m, BrazilInspectionId = 2, CurrentFieldId = 2 }
+                }
+            };
+
+            var reportDetails = new List<FieldInspectionFormReportDetail>
+            {
+                new FieldInspectionFormReportDetail { CurrentFieldId = 1, NationalRegistryOfSeedAndSeedlingsCorteva = "REN123" },
+                new FieldInspectionFormReportDetail { CurrentFieldId = 2, NationalRegistryOfSeedAndSeedlingsCorteva = "REN456" }
+            };
+
+            _fieldInspectionFormDataServiceMock
+                .Setup(x => x.GetReportData(It.IsAny<string>(), It.IsAny<List<DBFirst.Models.FieldInspectionForm>>()))
+                .ReturnsAsync(reportDetails);
+
+            _fieldInspectionFormDataServiceMock
+                .Setup(x => x.Validate(It.IsAny<List<int>>(), It.IsAny<List<FieldInspectionFormReportDetail>>()))
+                .Returns(new List<string>());
+
+            _ironPdfReportMock
+                .Setup(x => x.Get("FieldInspectionForm", reportParameters))
+                .ReturnsAsync(new OkResult());
+
+            // Act
+            var result = await _fieldInspectionFormRoutes.Print(reportParameters);
+
+            // Assert
+            Assert.IsInstanceOfType(result.Result, typeof(OkResult));
+            _ironPdfReportMock.Verify(x => x.Get("FieldInspectionForm", reportParameters), Times.Once);
+        }
+
+        [TestMethod]
+        public async Task Print_ShouldForbid_WhenUserNotAuthorized()
+        {
+            // Arrange
+            SeedProUserMock
+                .Setup(x => x.IsUserAuthorized("UpdateFieldInspectionForm", _pchsId))
+                .ReturnsAsync(false);
+
+            var reportParameters = new FieldInspectionFormParameters
+            {
+                PchsId = _pchsId,
+                ReportsToPrint = new List<FieldInspectionFormToPrint>
+                {
+                    new FieldInspectionFormToPrint { Area = 10.5m, BrazilInspectionId = 1, CurrentFieldId = 1 }
+                }
+            };
+
+            // Act
+            var result = await _fieldInspectionFormRoutes.Print(reportParameters);
+
+            // Assert
+            Assert.IsInstanceOfType(result.Result, typeof(ForbidResult));
+        }
+
+        [TestMethod]
+        public async Task Print_ShouldThrowException_WhenInvalidAreaOrInspectionId()
+        {
+            // Arrange
+            SeedProUserMock
+                .Setup(x => x.IsUserAuthorized("UpdateFieldInspectionForm", _pchsId))
+                .ReturnsAsync(true);
+
+            var reportParameters = new FieldInspectionFormParameters
+            {
+                PchsId = _pchsId,
+                ReportsToPrint = new List<FieldInspectionFormToPrint>
+                {
+                    new FieldInspectionFormToPrint { Area = 0m, BrazilInspectionId = 0, CurrentFieldId = 1 }
+                }
+            };
+
+            // Act & Assert
+            await Assert.ThrowsExceptionAsync<HttpRequestException>(() => 
+                _fieldInspectionFormRoutes.Print(reportParameters));
+        }
+
+        [TestMethod]
+        public async Task Print_ShouldThrowException_WhenMissingData()
+        {
+            // Arrange
+            SeedProUserMock
+                .Setup(x => x.IsUserAuthorized("UpdateFieldInspectionForm", _pchsId))
+                .ReturnsAsync(true);
+
+            var reportParameters = new FieldInspectionFormParameters
+            {
+                PchsId = _pchsId,
+                ReportsToPrint = new List<FieldInspectionFormToPrint>
+                {
+                    new FieldInspectionFormToPrint { Area = 10.5m, BrazilInspectionId = 1, CurrentFieldId = 1 }
+                }
+            };
+
+            _fieldInspectionFormDataServiceMock
+                .Setup(x => x.GetReportData(It.IsAny<string>(), It.IsAny<List<DBFirst.Models.FieldInspectionForm>>()))
+                .ReturnsAsync(new List<FieldInspectionFormReportDetail>());
+
+            _fieldInspectionFormDataServiceMock
+                .Setup(x => x.Validate(It.IsAny<List<int>>(), It.IsAny<List<FieldInspectionFormReportDetail>>()))
+                .Returns(new List<string> { "Missing data" });
+
+            // Act & Assert
+            await Assert.ThrowsExceptionAsync<HttpRequestException>(() => 
+                _fieldInspectionFormRoutes.Print(reportParameters));
+        }
+
+        [TestMethod]
+        public async Task Download_ShouldReturnFiles_WhenAuthorizedAndFilesExist()
+        {
+            // Arrange
+            SeedProUserMock
+                .Setup(x => x.IsUserAuthorized("ReadFieldInspectionForm", _pchsId))
+                .ReturnsAsync(true);
+
+            var reportParameters = new FieldInspectionFileParameters
+            {
+                PchsId = _pchsId,
+                FieldInspectionFormIds = _fieldInspectionFormIds
+            };
+
+            var fieldInspectionForms = _fieldInspectionFormIds.Select(id => new DBFirst.Models.FieldInspectionForm
+            {
+                FieldInspectionFormId = id,
+                CurrentFieldId = 1,
+                BrazilInspectionID = 1,
+                CalendarYear = 2023
+            }).ToList();
+
+            var brazilInspections = new List<BrazilInspection> { new BrazilInspection { BrazilInspectionId = 1 } };
+            var plantBrazilLegal = new List<PlantBrazilLegal> { new PlantBrazilLegal { PlantCode = "PLANT", RenasemNumber = "REN123" } };
+            var currentFields = new List<CurrentField> { new CurrentField { CurrentFieldId = 1, FieldNumber = "FIELD1", PrimaryContact = "John Doe" } };
+
+            using (var context = ContextFactoryForTest.CreateWritableContext())
+            {
+                context.FieldInspectionForm.AddRange(fieldInspectionForms);
+                await context.SaveChangesAsync();
+            }
+
+            _fieldInspectionFormRepositoryMock
+                .Setup(x => x.GetBrazilInspectionsByIds(It.IsAny<List<int>>()))
+                .ReturnsAsync(brazilInspections);
+
+            _fieldInspectionFormRepositoryMock
+                .Setup(x => x.GetPlantBrazilLegal(It.IsAny<string>()))
+                .ReturnsAsync(plantBrazilLegal);
+
+            _fieldInspectionFormRepositoryMock
+                .Setup(x => x.GetCurrentFieldData(It.IsAny<List<int>>()))
+                .ReturnsAsync(currentFields);
+
+            var expectedFiles = new Dictionary<string, byte[]>
+            {
+                { "/2023/REN123/FIELD1-John_Doe-MG-2023-1-00001.pdf", new byte[] { 1, 2, 3 } }
+            };
+
+            _storageServiceMock
+                .Setup(x => x.GetFiles(It.IsAny<List<string>>()))
+                .Returns(expectedFiles);
+
+            // Act
+            var result = await _fieldInspectionFormRoutes.Download(reportParameters);
+
+            // Assert
+            Assert.IsNotNull(result.Value);
+            _storageServiceMock.Verify(x => x.GetFiles(It.IsAny<List<string>>()), Times.Once);
+        }
+
+        [TestMethod]
+        public async Task Download_ShouldForbid_WhenUserNotAuthorized()
+        {
+            // Arrange
+            SeedProUserMock
+                .Setup(x => x.IsUserAuthorized("ReadFieldInspectionForm", _pchsId))
+                .ReturnsAsync(false);
+
+            var reportParameters = new FieldInspectionFileParameters
+            {
+                PchsId = _pchsId,
+                FieldInspectionFormIds = _fieldInspectionFormIds
+            };
+
+            // Act
+            var result = await _fieldInspectionFormRoutes.Download(reportParameters);
+
+            // Assert
+            Assert.IsInstanceOfType(result.Result, typeof(ForbidResult));
+        }
+
+        [TestMethod]
+        public async Task Cancel_ShouldUpdateStatusToCancelled_WhenAuthorized()
+        {
+            // Arrange
+            SeedProUserMock
+                .Setup(x => x.IsUserAuthorized("UpdateFieldInspectionForm", _pchsId))
+                .ReturnsAsync(true);
+
+            var reportParameters = new FieldInspectionFileParameters
+            {
+                PchsId = _pchsId,
+                FieldInspectionFormIds = _fieldInspectionFormIds
+            };
+
+            var fieldInspectionForms = _fieldInspectionFormIds.Select(id => new DBFirst.Models.FieldInspectionForm
+            {
+                FieldInspectionFormId = id,
+                Status = "Printed"
+            }).ToList();
+
+            using (var context = ContextFactoryForTest.CreateWritableContext())
+            {
+                context.FieldInspectionForm.AddRange(fieldInspectionForms);
+                await context.SaveChangesAsync();
+            }
+
+            // Act
+            var result = await _fieldInspectionFormRoutes.Cancel(reportParameters);
+
+            // Assert
+            Assert.IsInstanceOfType(result, typeof(OkResult));
+
+            using (var context = ContextFactoryForTest.CreateReadOnlyContext())
+            {
+                var cancelledForms = await context.FieldInspectionForm
+                    .Where(x => _fieldInspectionFormIds.Contains(x.FieldInspectionFormId))
+                    .ToListAsync();
+
+                Assert.IsTrue(cancelledForms.All(x => x.Status == "Cancelled"));
+                Assert.IsTrue(cancelledForms.All(x => x.Revisor == SeedProUserMock.Object.UserName));
+            }
+        }
+
+        [TestMethod]
+        public async Task GetFieldInspectionFormHistory_ShouldReturnHistory_WhenAuthorized()
+        {
+            // Arrange
+            var currentFieldId = 1;
+            SeedProUserMock
+                .Setup(x => x.IsUserAuthorized("ReadFieldInspectionForm", _pchsId))
+                .ReturnsAsync(true);
+
+            var fieldInspectionForms = new List<DBFirst.Models.FieldInspectionForm>
+            {
+                new DBFirst.Models.FieldInspectionForm
+                {
+                    FieldInspectionFormId = 101,
+                    CurrentFieldId = currentFieldId,
+                    DocumentNumber = 12345,
+                    CalendarYear = 2023,
+                    Status = "Printed",
+                    PrintedUserLocalDateTime = DateTimeOffset.Now,
+                    Creator = "user1",
+                    CreatedDate = DateTimeOffset.Now,
+                    Revisor = "user2",
+                    RevisedDate = DateTimeOffset.Now,
+                    GrossArea = 10.5m
+                }
+            };
+
+            var currentFields = new List<CurrentField>
+            {
+                new CurrentField { CurrentFieldId = currentFieldId, FieldNumber = "FIELD1" }
+            };
+
+            using (var context = ContextFactoryForTest.CreateWritableContext())
+            {
+                context.FieldInspectionForm.AddRange(fieldInspectionForms);
+                context.CurrentField.AddRange(currentFields);
+                await context.SaveChangesAsync();
+            }
+
+            // Act
+            var result = await _fieldInspectionFormRoutes.GetFieldInspectionFormHistory(_pchsId, currentFieldId);
+
+            // Assert
+            Assert.IsNotNull(result.Value);
+            Assert.AreEqual(1, result.Value.Count);
+            Assert.AreEqual("12345/2023", result.Value[0].UniqueId);
+            Assert.AreEqual("FIELD1", result.Value[0].CurrentFieldNumber);
+        }
+
+        [TestMethod]
+        public async Task GetFieldInspectionOptions_ShouldReturnOptions_WhenAuthorized()
+        {
+            // Arrange
+            SeedProUserMock
+                .Setup(x => x.IsUserAuthorized("ReadFieldInspectionForm", _pchsId))
+                .ReturnsAsync(true);
+
+            var brazilInspections = new List<BrazilInspection>
+            {
+                new BrazilInspection
+                {
+                    BrazilInspectionId = 1,
+                    CurrentFieldId = 1,
+                    GrossArea = 10.5m,
+                    InspectionDate = DateTime.Now,
+                    SurveyName = "Survey 1"
+                }
+            };
+
+            var reportDetails = new List<FieldInspectionFormReportDetail>
+            {
+                new FieldInspectionFormReportDetail { CurrentFieldId = 1 }
+            };
+
+            _fieldInspectionFormDataServiceMock
+                .Setup(x => x.GetBrazilInspections(It.IsAny<string>(), It.IsAny<List<int>>()))
+                .ReturnsAsync(brazilInspections);
+
+            _fieldInspectionFormDataServiceMock
+                .Setup(x => x.GetReportData(It.IsAny<string>(), It.IsAny<List<DBFirst.Models.FieldInspectionForm>>()))
+                .ReturnsAsync(reportDetails);
+
+            _fieldInspectionFormDataServiceMock
+                .Setup(x => x.Validate(It.IsAny<List<int>>(), It.IsAny<List<FieldInspectionFormReportDetail>>()))
+                .Returns(new List<string>());
+
+            _fieldInspectionFormDataServiceMock
+                .Setup(x => x.ValidateInspection(It.IsAny<BrazilInspection>()))
+                .Returns(new List<string>());
+
+            // Act
+            var result = await _fieldInspectionFormRoutes.GetFieldInspectionOptions(_pchsId, _currentFieldIds);
+
+            // Assert
+            Assert.IsNotNull(result.Value);
+            Assert.AreEqual(1, result.Value.BrazilInspections.Count);
+            Assert.AreEqual(0, result.Value.MissingColumns.Count);
+        }
+
+        [TestMethod]
+        public async Task LogError_ShouldUpdateFormsWithError_WhenErrorOccurs()
+        {
+            // Arrange
+            var fieldInspectionForms = new List<DBFirst.Models.FieldInspectionForm>
+            {
+                new DBFirst.Models.FieldInspectionForm
+                {
+                    FieldInspectionFormId = 101,
+                    HasError = false,
+                    ErrorMessage = null
+                }
+            };
+
+            using (var context = ContextFactoryForTest.CreateWritableContext())
+            {
+                context.FieldInspectionForm.AddRange(fieldInspectionForms);
+                await context.SaveChangesAsync();
+            }
+
+            var errorMessage = "Test error message";
+
+            // Act
+            _fieldInspectionFormRoutes.LogError(fieldInspectionForms, errorMessage);
+
+            // Assert
+            using (var context = ContextFactoryForTest.CreateReadOnlyContext())
+            {
+                var updatedForm = await context.FieldInspectionForm.FindAsync(101);
+                Assert.IsTrue(updatedForm.HasError);
+                Assert.AreEqual(errorMessage, updatedForm.ErrorMessage);
+            }
+        }
+    }
+}
