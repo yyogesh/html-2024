@@ -1,0 +1,19 @@
+<xds-expandable [card]="true" [arrow]="true" (expandopen)="onExpandOpen()">
+      <ng-container trigger>Toggle notes</ng-container>
+      <p>Sorry, Data. I'll alert the crew. Could someone survive inside a transporter buffer for 75 years? Not
+        if I weaken first. We have a saboteur aboard. Some days you get the bear, and some days the bear gets
+        you.</p>
+      <xds-slider *ngIf="showSlider" [(ngModel)]="monthlyPayment" label="Amount to invest"
+        cueText="Select the monthly contributions" size="large" [min]="0" [max]="10000" [displayMinMax]="true"
+        [displayInput]="true" [follow]="true" [formatNumberLive]="true" unit="$" unitPositionX="left"
+        [step]="100"></xds-slider>
+    </xds-expandable>
+
+(expandopen)="onExpandOpen()"
+
+
+onExpandOpen() {
+    this.showSlider = true
+  }
+
+<xds-slider *ngIf="showSlider"
