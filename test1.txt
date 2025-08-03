@@ -1,0 +1,11 @@
+<tr *ngIf="items()?.length === 0">
+    <td colspan="5" class="text-center">
+      <ng-container [ngSwitch]="selectedStatus">
+        <span *ngSwitchCase="'value'">No items found for value status.</span>
+        <span *ngSwitchCase="'expired'">No expired items available.</span>
+        <span *ngSwitchCase="'pending'">No pending items to display.</span>
+        <span *ngSwitchCase="'All'">No items found in any status.</span>
+        <span *ngSwitchDefault>No data available.</span>
+      </ng-container>
+    </td>
+  </tr>
