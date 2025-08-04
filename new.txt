@@ -1,90 +1,42 @@
-// src/hooks/useSelection.ts
-import { useState, useEffect, useCallback } from 'react';
-import { SelectionInfo } from '../types';
+// src/components/Tooltip.tsx
+import React, { useState, useRef, ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 
-export function useSelection(): SelectionInfo | null {
-  const [selection, setSelection] = useState<SelectionInfo | null>(null);
-
-  const handleMouseUp = useCallback((event: MouseEvent) => {
-    // Ignore clicks inside our own UI
-    if ((event.target as HTMLElement)?.closest('#aig-lite-content-script-root')) {
-      return;
-    }
-
-    setTimeout(() => {
-      const currentSelection = window.getSelection();
-      const text = currentSelection?.toString().trim();
-
-      if (text && currentSelection?.rangeCount) {
-        const rect = currentSelection.getRangeAt(0).getBoundingClientRect();
-        setSelection({ text, rect });
-      } else {
-        setSelection(null);
-      }
-    }, 10);
-  }, []);
-
-  useEffect(() => {
-    document.addEventListener('mouseup', handleMouseUp);
-    return () => {
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [handleMouseUp]);
-
-  return selection;
+interface TooltipProps {
+  children: ReactNode;
+  text: string;
 }
 
+export const Tooltip: React.FC<TooltipProps> = ({ children, text }) => {
+  const [visible, setVisible] = useState(false);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+  const childRef = useRef<HTMLDivElement>(null);
 
-
-// src/hooks/useToolbarVisibility.ts
-import { useState, useEffect } from 'react';
-import { getStorage, isChromeApiAvailable, logToolbarEvent } from '../services/chromeApi';
-
-export function useToolbarVisibility(selection: any): boolean {
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    if (!selection) {
-      setIsVisible(false);
-      return;
+  const showTooltip = () => {
+    if (childRef.current) {
+      const rect = childRef.current.getBoundingClientRect();
+      setPosition({ top: rect.top - 10, left: rect.left + rect.width / 2 });
+      setVisible(true);
     }
+  };
 
-    const checkVisibility = async () => {
-      try {
-        if (sessionStorage.getItem('aiglite_toolbar_disabled_once') === '1') {
-          logToolbarEvent('toolbar_hidden_once');
-          return setIsVisible(false);
-        }
-
-        if (!isChromeApiAvailable()) {
-          return setIsVisible(true); // Default to visible if APIs are not there
-        }
-
-        const { aiglite_toolbar_disabled_all, aiglite_toolbar_disabled_sites = [] } = await getStorage([
-          'aiglite_toolbar_disabled_all',
-          'aiglite_toolbar_disabled_sites',
-        ]);
-
-        if (aiglite_toolbar_disabled_all) {
-          logToolbarEvent('toolbar_hidden_all');
-          return setIsVisible(false);
-        }
-
-        const domain = window.location.hostname.replace(/^www\./, '');
-        if (aiglite_toolbar_disabled_sites.includes(domain)) {
-          logToolbarEvent('toolbar_hidden_site', { domain });
-          return setIsVisible(false);
-        }
-
-        setIsVisible(true);
-      } catch (error) {
-        console.warn('AIG Lite: Error checking toolbar visibility:', error);
-        setIsVisible(true); // Fail open
-      }
-    };
-
-    checkVisibility();
-  }, [selection]);
-
-  return isVisible;
-}
+  return (
+    <div ref={childRef} onMouseEnter={showTooltip} onMouseLeave={() => setVisible(false)}>
+      {children}
+      {visible &&
+        createPortal(
+          <div
+            className="aig-tooltip"
+            style={{
+              top: `${position.top}px`,
+              left: `${position.left}px`,
+              transform: 'translate(-50%, -100%)',
+            }}
+          >
+            {text}
+          </div>,
+          document.body
+        )}
+    </div>
+  );
+};
