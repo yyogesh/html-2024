@@ -1,58 +1,49 @@
 
-import React, { CSSProperties } from 'react';
-import { Rect } from '../types';
-import { Tooltip } from './Tooltip';
-import { getAssetURL, openSidePanel } from '../services/chromeApi';
-import { processArticle } from '../utils/contentProcessor';
+import React, { useState } from 'react';
+import { createRoot } from 'react-dom/client';
+import { useSelection } from './hooks/useSelection';
+import { useToolbarVisibility } from './hooks/useToolbarVisibility';
+import { FloatingToolbar } from './components/FloatingToolbar';
+import { injectRootElement } from './utils/dom';
 
-interface FloatingToolbarProps {
-  position: Rect;
-  selectedText: string;
-  onClose: () => void;
-}
+const App: React.FC = () => {
+  const selection = useSelection();
+  const isToolbarVisible = useToolbarVisibility(selection);
+  const [isToolbarOpen, setToolbarOpen] = useState(false);
 
-export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({ position, selectedText, onClose }) => {
-    const handleCopy = async () => {
-        await navigator.clipboard.writeText(selectedText);
-        // Add visual feedback if desired
-    };
+  const handleCloseToolbar = () => {
+    setToolbarOpen(false);
+  };
 
-    const handleExplain = () => {
-        const articleData = processArticle(document);
-        openSidePanel('explain_this', {
-            message: `Explain this text:\n\n${selectedText}`,
-            ...articleData
-        });
-        onClose();
-    };
+  // The logic for the FloatingDot would go here. For simplicity,
+  // we'll directly show the toolbar.
+  // A `useEffect` would manage the transition from dot to toolbar on hover.
+  
+  // A useEffect would also be used here to set up the Message Listener and MutationObserver
+  // for upload error detection, which would then conditionally render the UploadErrorPopup component.
 
-    const style: CSSProperties = {
-        position: 'fixed',
-        top: `${position.top + window.scrollY - 40}px`,
-        left: `${position.left + window.scrollX}px`,
-        // ... other styles from your original code, preferably in a CSS file
-        zIndex: 2147483647,
-        display: 'flex',
-        background: 'white',
-        borderRadius: '8px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-        padding: '4px',
-    };
-
+  if (!selection || !isToolbarVisible) {
+    return null;
+  }
+  
+  // A more complete implementation would show a dot first,
+  // then the toolbar on hover.
   return (
-    <div id="aig-lite-toolbar" style={style} onMouseLeave={onClose}>
-        <Tooltip text="Open AIG Lite">
-            <button onClick={() => openSidePanel('toolbar_logo')}>
-                <img src={getAssetURL('icon.png')} alt="AIG Lite" style={{ width: 16, height: 16 }} />
-            </button>
-        </Tooltip>
-        <Tooltip text="Copy">
-            <button onClick={handleCopy}> {/* SVG Icon */} </button>
-        </Tooltip>
-        <Tooltip text="Explain">
-            <button onClick={handleExplain}> {/* SVG Icon */} </button>
-        </Tooltip>
-        {/* The OptionsDropdown component would go here */}
-    </div>
+    <FloatingToolbar
+      position={selection.rect}
+      selectedText={selection.text}
+      onClose={handleCloseToolbar}
+    />
   );
 };
+
+const rootElement = injectRootElement();
+const root = createRoot(rootElement);
+root.render(<App />);
+
+// Cleanup session storage on load, as in the original script
+try {
+  sessionStorage.removeItem('aiglite_toolbar_disabled_once');
+} catch (error) {
+  console.warn('AIG Lite: SessionStorage not available:', error);
+}
