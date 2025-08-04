@@ -1,0 +1,32 @@
+// src/utils/contentProcessor.ts
+import { Readability } from '@mozilla/readability';
+import { ProcessedArticle } from '../types';
+
+function removeTags(html: string): string {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  return doc.body.textContent || '';
+}
+
+export function processArticle(document: Document): ProcessedArticle {
+  const documentClone = document.cloneNode(true) as Document;
+  const reader = new Readability(documentClone);
+  const article = reader.parse();
+
+  if (!article) {
+    return {
+        content: document.body.innerText,
+        metadata: { title: document.title }
+    }
+  }
+
+  return {
+    content: removeTags(article.content),
+    metadata: {
+      title: article.title,
+      byline: article.byline,
+      length: article.length,
+      excerpt: article.excerpt,
+      siteName: article.siteName,
+    },
+  };
+}
