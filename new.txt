@@ -1,32 +1,98 @@
-// src/utils/contentProcessor.ts
-import { Readability } from '@mozilla/readability';
-import { ProcessedArticle } from '../types';
 
-function removeTags(html: string): string {
-  const doc = new DOMParser().parseFromString(html, 'text/html');
-  return doc.body.textContent || '';
+/**
+ * Checks if the Chrome Extension APIs are available.
+ */
+export function isChromeApiAvailable(): boolean {
+  try {
+    return typeof chrome !== 'undefined' && !!chrome.runtime?.id;
+  } catch (e) {
+    return false;
+  }
 }
 
-export function processArticle(document: Document): ProcessedArticle {
-  const documentClone = document.cloneNode(true) as Document;
-  const reader = new Readability(documentClone);
-  const article = reader.parse();
-
-  if (!article) {
-    return {
-        content: document.body.innerText,
-        metadata: { title: document.title }
-    }
+/**
+ * Logs an event to the service worker.
+ */
+export function logToolbarEvent(eventName: string, additionalData: Record<string, any> = {}): void {
+  if (!isChromeApiAvailable()) {
+    console.warn(`AIG Lite: Chrome API not available. Cannot log event: ${eventName}`);
+    return;
   }
+  try {
+    chrome.runtime.sendMessage({
+      action: 'logToService',
+      logData: {
+        event: eventName,
+        url: window.location.href,
+        title: document.title,
+        domain: window.location.hostname.replace(/^www\./, ''),
+        timestamp: Date.now(),
+        ...additionalData,
+      },
+    });
+  } catch (error) {
+    console.warn('AIG Lite: Error logging toolbar event:', error);
+  }
+}
 
-  return {
-    content: removeTags(article.content),
-    metadata: {
-      title: article.title,
-      byline: article.byline,
-      length: article.length,
-      excerpt: article.excerpt,
-      siteName: article.siteName,
-    },
-  };
+/**
+ * Sends a message to open the side panel.
+ */
+export function openSidePanel(source: string, data?: Record<string, any>): void {
+  if (!isChromeApiAvailable()) {
+    console.warn('AIG Lite: Chrome API not available. Cannot open side panel.');
+    return;
+  }
+  try {
+    chrome.runtime.sendMessage({
+      type: 'open_side_panel',
+      directUserAction: true,
+      source,
+      data,
+    });
+  } catch (error) {
+    console.warn('AIG Lite: Error sending message to open side panel:', error);
+  }
+}
+
+/**
+ * A promise-based wrapper for chrome.storage.local.get.
+ */
+export async function getStorage(keys: string | string[]): Promise<Record<string, any>> {
+  if (!isChromeApiAvailable()) return {};
+  return new Promise((resolve, reject) => {
+    chrome.storage.local.get(keys, (result) => {
+      if (chrome.runtime.lastError) {
+        return reject(chrome.runtime.lastError);
+      }
+      resolve(result);
+    });
+  });
+}
+
+/**
+ * A promise-based wrapper for chrome.storage.local.set.
+ */
+export async function setStorage(items: Record<string, any>): Promise<void> {
+  if (!isChromeApiAvailable()) return;
+  return new Promise((resolve, reject) => {
+    chrome.storage.local.set(items, () => {
+      if (chrome.runtime.lastError) {
+        return reject(chrome.runtime.lastError);
+      }
+      resolve();
+    });
+  });
+}
+
+/**
+ * Gets the URL for an extension asset.
+ */
+export function getAssetURL(path: string): string {
+    if (!isChromeApiAvailable()) return '';
+    try {
+        return chrome.runtime.getURL(path);
+    } catch (e) {
+        return path;
+    }
 }
