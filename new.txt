@@ -1,42 +1,58 @@
-// src/components/Tooltip.tsx
-import React, { useState, useRef, ReactNode } from 'react';
-import { createPortal } from 'react-dom';
 
-interface TooltipProps {
-  children: ReactNode;
-  text: string;
+import React, { CSSProperties } from 'react';
+import { Rect } from '../types';
+import { Tooltip } from './Tooltip';
+import { getAssetURL, openSidePanel } from '../services/chromeApi';
+import { processArticle } from '../utils/contentProcessor';
+
+interface FloatingToolbarProps {
+  position: Rect;
+  selectedText: string;
+  onClose: () => void;
 }
 
-export const Tooltip: React.FC<TooltipProps> = ({ children, text }) => {
-  const [visible, setVisible] = useState(false);
-  const [position, setPosition] = useState({ top: 0, left: 0 });
-  const childRef = useRef<HTMLDivElement>(null);
+export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({ position, selectedText, onClose }) => {
+    const handleCopy = async () => {
+        await navigator.clipboard.writeText(selectedText);
+        // Add visual feedback if desired
+    };
 
-  const showTooltip = () => {
-    if (childRef.current) {
-      const rect = childRef.current.getBoundingClientRect();
-      setPosition({ top: rect.top - 10, left: rect.left + rect.width / 2 });
-      setVisible(true);
-    }
-  };
+    const handleExplain = () => {
+        const articleData = processArticle(document);
+        openSidePanel('explain_this', {
+            message: `Explain this text:\n\n${selectedText}`,
+            ...articleData
+        });
+        onClose();
+    };
+
+    const style: CSSProperties = {
+        position: 'fixed',
+        top: `${position.top + window.scrollY - 40}px`,
+        left: `${position.left + window.scrollX}px`,
+        // ... other styles from your original code, preferably in a CSS file
+        zIndex: 2147483647,
+        display: 'flex',
+        background: 'white',
+        borderRadius: '8px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+        padding: '4px',
+    };
 
   return (
-    <div ref={childRef} onMouseEnter={showTooltip} onMouseLeave={() => setVisible(false)}>
-      {children}
-      {visible &&
-        createPortal(
-          <div
-            className="aig-tooltip"
-            style={{
-              top: `${position.top}px`,
-              left: `${position.left}px`,
-              transform: 'translate(-50%, -100%)',
-            }}
-          >
-            {text}
-          </div>,
-          document.body
-        )}
+    <div id="aig-lite-toolbar" style={style} onMouseLeave={onClose}>
+        <Tooltip text="Open AIG Lite">
+            <button onClick={() => openSidePanel('toolbar_logo')}>
+                <img src={getAssetURL('icon.png')} alt="AIG Lite" style={{ width: 16, height: 16 }} />
+            </button>
+        </Tooltip>
+        <Tooltip text="Copy">
+            <button onClick={handleCopy}> {/* SVG Icon */} </button>
+        </Tooltip>
+        <Tooltip text="Explain">
+            <button onClick={handleExplain}> {/* SVG Icon */} </button>
+        </Tooltip>
+        {/* The OptionsDropdown component would go here */}
     </div>
   );
 };
