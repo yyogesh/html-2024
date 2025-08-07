@@ -1,90 +1,25 @@
-import { Readability } from '@mozilla/readability';
+import { useEffect, useMemo, useRef } from 'react';
 
 /**
- * Removes HTML tags from a string.
- * @param {string} html - The HTML string to parse.
- * @returns {string} The text content.
+ * A hook to debounce a function.
+ * @param {Function} callback - The function to debounce.
+ * @param {number} delay - The debounce delay in milliseconds.
+ * @returns {Function} The debounced function.
  */
-function removeTags(html) {
-  const doc = new DOMParser().parseFromString(html, 'text/html');
-  return doc.body.textContent || '';
-}
+export const useDebounce = (callback, delay) => {
+    const callbackRef = useRef(callback);
 
-/**
- * Processes the current document to extract the main article content and metadata.
- * @param {Document} document - The document object to process.
- * @returns {{content: string, metadata: Object}}
- */
-export function processArticle(document) {
-  const documentClone = document.cloneNode(true);
-  const reader = new Readability(documentClone);
-  const article = reader.parse();
+    useEffect(() => {
+        callbackRef.current = callback;
+    }, [callback]);
 
-  const content = article ? removeTags(article.content) : document.body.innerText;
-
-  const metadata = article
-    ? {
-        title: article.title,
-        byline: article.byline,
-        length: article.length,
-        excerpt: article.excerpt,
-        siteName: article.siteName,
-      }
-    : {
-        title: document.title,
-      };
-
-  return { content, metadata };
-}
-
-
-
-import { useState, useEffect, useCallback } from 'react';
-import { useDebounce } from './useDebounce';
-import { TOOLBAR_ID } from '../utils/constants';
-
-/**
- * @typedef {object} SelectionState
- * @property {string} text - The selected text.
- * @property {DOMRect | null} rect - The bounding rectangle of the selection.
- */
-
-/**
- * A hook to track user text selection on the page.
- * @returns {SelectionState}
- */
-export const useTextSelection = () => {
-  const [selection, setSelection] = useState({ text: '', rect: null });
-
-  const handleMouseUp = useCallback((event) => {
-    // Ignore clicks inside the toolbar
-    if (event.target.closest(`#${TOOLBAR_ID}`)) {
-      return;
-    }
-
-    const currentSelection = window.getSelection();
-    const selectedText = currentSelection?.toString().trim() || '';
-
-    if (selectedText) {
-      const range = currentSelection.getRangeAt(0);
-      setSelection({ text: selectedText, rect: range.getBoundingClientRect() });
-    } else {
-      // If there's no text, clear the selection
-      setSelection({ text: '', rect: null });
-    }
-  }, []);
-
-  const debouncedMouseUp = useDebounce(handleMouseUp, 50);
-
-  useEffect(() => {
-    document.addEventListener('mouseup', debouncedMouseUp);
-    document.addEventListener('mousedown', () => setSelection({ text: '', rect: null }));
-    
-    return () => {
-      document.removeEventListener('mouseup', debouncedMouseUp);
-      document.removeEventListener('mousedown', () => setSelection({ text: '', rect: null }));
-    };
-  }, [debouncedMouseUp]);
-
-  return selection;
+    return useMemo(() => {
+        let timer;
+        return (...args) => {
+            clearTimeout(timer);
+            timer = setTimeout(() => {
+                callbackRef.current(...args);
+            }, delay);
+        };
+    }, [delay]);
 };
