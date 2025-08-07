@@ -1,101 +1,51 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { createPortal } from 'react-dom';
-import { useTextSelection } from './hooks/useTextSelection';
-import { useChromeApi } from './hooks/useChromeApi';
-import { FloatingToolbar } from './components/FloatingToolbar/FloatingToolbar';
-import { FloatingDot } from './components/FloatingDot/FloatingDot';
-import { NotificationToast } from './components/NotificationToast/NotificationToast';
-import { STORAGE_KEYS } from './utils/constants';
+import React, { useState } from 'react';
+import { dotBaseStyle, dotHoverStyle } from './FloatingDot.styles';
+import { DOT_ID } from '../../utils/constants';
 
-const App = () => {
-    const { text: selectedText, rect } = useTextSelection();
-    const { getStorage } = useChromeApi();
-
-    const [isVisible, setVisible] = useState(false);
-    const [showDot, setShowDot] = useState(false);
-    const [toolbarRect, setToolbarRect] = useState(null);
-
-    const [notification, setNotification] = useState({ show: false, message: '' });
-
-    // Logic to decide if the toolbar should be shown based on storage settings
-    const checkToolbarVisibility = useCallback(async () => {
-        if (!selectedText) return false;
-        try {
-            const domain = window.location.hostname.replace(/^www\./, '');
-            const once = sessionStorage.getItem(STORAGE_KEYS.DISABLED_ONCE) === '1';
-            if (once) return false;
-
-            const {
-                [STORAGE_KEYS.DISABLED_ALL]: all,
-                [STORAGE_KEYS.DISABLED_SITES]: sites = []
-            } = await getStorage([STORAGE_KEYS.DISABLED_ALL, STORAGE_KEYS.DISABLED_SITES]);
-
-            if (all || sites.includes(domain)) {
-                return false;
-            }
-            return true;
-        } catch (e) {
-            return true; // Default to showing if storage fails
-        }
-    }, [getStorage, selectedText]);
-    
-    useEffect(() => {
-        const handleSelection = async () => {
-            if (selectedText && rect) {
-                const shouldShow = await checkToolbarVisibility();
-                if (shouldShow) {
-                    setShowDot(true);
-                    setToolbarRect(rect);
-                } else {
-                    setShowDot(false);
-                    setVisible(false);
-                }
-            } else {
-                setShowDot(false);
-                setVisible(false);
-            }
-        };
-        handleSelection();
-    }, [selectedText, rect, checkToolbarVisibility]);
-
-    const handleShowNotification = (message) => {
-        setNotification({ show: true, message });
-    };
-
-    const handleCloseToolbar = () => {
-        setVisible(false);
-        setShowDot(false);
-    };
-    
-    const handleDotHover = () => {
-        setShowDot(false);
-        setVisible(true);
-    };
-
-    return (
-        <>
-            {showDot && toolbarRect && createPortal(
-                <FloatingDot rect={toolbarRect} onHover={handleDotHover} />,
-                document.body
-            )}
-            {isVisible && toolbarRect && createPortal(
-                <FloatingToolbar
-                    rect={toolbarRect}
-                    selectedText={selectedText}
-                    onClose={handleCloseToolbar}
-                    onShowNotification={handleShowNotification}
-                />,
-                document.body
-            )}
-            {notification.show && createPortal(
-                <NotificationToast
-                    message={notification.message}
-                    onClose={() => setNotification({ show: false, message: '' })}
-                />,
-                document.body
-            )}
-        </>
-    );
+/**
+ * @param {{
+ * rect: DOMRect;
+ * onHover: () => void;
+ * }} props
+ */
+export const FloatingDot = ({ rect, onHover }) => {
+  const [isHovered, setHovered] = useState(false);
+  
+  const style = {
+    ...dotBaseStyle,
+    ...(isHovered ? dotHoverStyle : {}),
+    top: `${window.scrollY + rect.top - 14}px`,
+    left: `${window.scrollX + rect.left - 4}px`,
+  };
+  
+  return (
+    <div
+      id={DOT_ID}
+      style={style}
+      onMouseEnter={() => {
+        setHovered(true);
+        onHover();
+      }}
+      onMouseLeave={() => setHovered(false)}
+    />
+  );
 };
 
-export default App;
+
+
+export const dotBaseStyle = {
+  position: 'absolute',
+  width: '8px',
+  height: '8px',
+  background: '#3b82f6', // blue-500
+  borderRadius: '50%',
+  zIndex: 2147483647,
+  boxShadow: '0 1px 4px rgba(0,0,0,0.13)',
+  cursor: 'pointer',
+  transition: 'background 0.2s, transform 0.2s',
+};
+
+export const dotHoverStyle = {
+  background: '#2563eb', // blue-600
+  transform: 'scale(1.2)',
+};
