@@ -1,136 +1,101 @@
-import React, { useState } from 'react';
-import { FloatingToolbarContainer, ToolbarStyles } from './FloatingToolbar.styles';
-import { useChromeApi } from '../../hooks/useChromeApi';
-import { logToolbarEvent } from '../../services/eventLogger';
-import { processArticle } from '../../services/articleProcessor';
-import { STORAGE_KEYS, TOOLBAR_ID } from '../../utils/constants';
+import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
+import { useTextSelection } from './hooks/useTextSelection';
+import { useChromeApi } from './hooks/useChromeApi';
+import { FloatingToolbar } from './components/FloatingToolbar/FloatingToolbar';
+import { FloatingDot } from './components/FloatingDot/FloatingDot';
+import { NotificationToast } from './components/NotificationToast/NotificationToast';
+import { STORAGE_KEYS } from './utils/constants';
 
-import { ToolbarButton } from './ToolbarButton';
-import { OptionsDropdown } from './OptionsDropdown';
-import { CopyIcon, ExplainIcon, OptionsIcon, LogoIcon } from './Icons'; // Assuming you create an Icons.jsx
+const App = () => {
+    const { text: selectedText, rect } = useTextSelection();
+    const { getStorage } = useChromeApi();
 
-/**
- * @param {{
- * rect: DOMRect;
- * selectedText: string;
- * onClose: () => void;
- * onShowNotification: (message: string) => void;
- * }} props
- */
-export const FloatingToolbar = ({ rect, selectedText, onClose, onShowNotification }) => {
-  const [isOptionsOpen, setOptionsOpen] = useState(false);
-  const { getURL, sendMessage, setStorage } = useChromeApi();
+    const [isVisible, setVisible] = useState(false);
+    const [showDot, setShowDot] = useState(false);
+    const [toolbarRect, setToolbarRect] = useState(null);
 
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(selectedText);
-    logToolbarEvent('toolbar_copy_clicked');
-    // You can add a visual confirmation here if needed
-  };
+    const [notification, setNotification] = useState({ show: false, message: '' });
 
-  const handleExplain = async () => {
-    const { content } = processArticle(document);
-    const textData = {
-      message: `Explain this text in the context of the current page:\n\n${selectedText}`,
-      pageContent: content,
-      pageUrl: window.location.href,
-      pageTitle: document.title,
-      timestamp: Date.now(),
-      originalText: selectedText,
+    // Logic to decide if the toolbar should be shown based on storage settings
+    const checkToolbarVisibility = useCallback(async () => {
+        if (!selectedText) return false;
+        try {
+            const domain = window.location.hostname.replace(/^www\./, '');
+            const once = sessionStorage.getItem(STORAGE_KEYS.DISABLED_ONCE) === '1';
+            if (once) return false;
+
+            const {
+                [STORAGE_KEYS.DISABLED_ALL]: all,
+                [STORAGE_KEYS.DISABLED_SITES]: sites = []
+            } = await getStorage([STORAGE_KEYS.DISABLED_ALL, STORAGE_KEYS.DISABLED_SITES]);
+
+            if (all || sites.includes(domain)) {
+                return false;
+            }
+            return true;
+        } catch (e) {
+            return true; // Default to showing if storage fails
+        }
+    }, [getStorage, selectedText]);
+    
+    useEffect(() => {
+        const handleSelection = async () => {
+            if (selectedText && rect) {
+                const shouldShow = await checkToolbarVisibility();
+                if (shouldShow) {
+                    setShowDot(true);
+                    setToolbarRect(rect);
+                } else {
+                    setShowDot(false);
+                    setVisible(false);
+                }
+            } else {
+                setShowDot(false);
+                setVisible(false);
+            }
+        };
+        handleSelection();
+    }, [selectedText, rect, checkToolbarVisibility]);
+
+    const handleShowNotification = (message) => {
+        setNotification({ show: true, message });
     };
 
-    await setStorage({ [STORAGE_KEYS.SELECTED_TEXT]: textData });
-    await sendMessage({
-      type: 'open_side_panel',
-      data: textData,
-      directUserAction: true,
-      source: 'explain_this',
-    });
-    logToolbarEvent('toolbar_explain_clicked');
-    onClose();
-  };
+    const handleCloseToolbar = () => {
+        setVisible(false);
+        setShowDot(false);
+    };
+    
+    const handleDotHover = () => {
+        setShowDot(false);
+        setVisible(true);
+    };
 
-  const handleOpenPanel = () => {
-    sendMessage({ type: 'open_side_panel', directUserAction: true, source: 'toolbar_logo' });
-    logToolbarEvent('toolbar_logo_clicked');
-    onClose();
-  };
-
-  const handleOptionsToggle = (e) => {
-    e.stopPropagation();
-    setOptionsOpen(prev => !prev);
-  };
-  
-  // Responsive positioning
-  const style = { ...FloatingToolbarContainer };
-  const topOffset = 40; // Height of toolbar + margin
-  style.top = `${window.scrollY + rect.top - topOffset}px`;
-  style.left = `${window.scrollX + rect.left}px`;
-  
-  if (rect.top < topOffset) { // If not enough space on top, show below
-      style.top = `${window.scrollY + rect.bottom + 10}px`;
-  }
-
-  return (
-    <>
-      <ToolbarStyles />
-      <div id={TOOLBAR_ID} style={style} onMouseLeave={onClose}>
-        <ToolbarButton
-          tooltip="Open AIG Lite"
-          onClick={handleOpenPanel}
-          icon={<LogoIcon src={getURL('icon.png')} />}
-        />
-        <ToolbarButton tooltip="Copy" onClick={handleCopy} icon={<CopyIcon />} />
-        <ToolbarButton tooltip="Explain" onClick={handleExplain} icon={<ExplainIcon />} />
-        <ToolbarButton tooltip="Options" onClick={handleOptionsToggle} icon={<OptionsIcon />} />
-
-        {isOptionsOpen && (
-          <OptionsDropdown
-            onClose={() => setOptionsOpen(false)}
-            onCloseToolbar={onClose}
-            onShowNotification={onShowNotification}
-          />
-        )}
-      </div>
-    </>
-  );
+    return (
+        <>
+            {showDot && toolbarRect && createPortal(
+                <FloatingDot rect={toolbarRect} onHover={handleDotHover} />,
+                document.body
+            )}
+            {isVisible && toolbarRect && createPortal(
+                <FloatingToolbar
+                    rect={toolbarRect}
+                    selectedText={selectedText}
+                    onClose={handleCloseToolbar}
+                    onShowNotification={handleShowNotification}
+                />,
+                document.body
+            )}
+            {notification.show && createPortal(
+                <NotificationToast
+                    message={notification.message}
+                    onClose={() => setNotification({ show: false, message: '' })}
+                />,
+                document.body
+            )}
+        </>
+    );
 };
 
-
-
-import React from 'react';
-
-// Using style objects to avoid adding a CSS-in-JS library dependency
-export const FloatingToolbarContainer = {
-  position: 'absolute',
-  zIndex: 2147483647,
-  display: 'flex',
-  alignItems: 'center',
-  gap: '2px',
-  background: 'white',
-  borderRadius: '10px',
-  boxShadow: '0 2px 8px rgba(0,0,0,0.13), 0 0 0 1px #eee',
-  height: '34px',
-  padding: '0 4px',
-  border: '1px solid #e0e0e0',
-  fontFamily: 'system-ui, -apple-system, sans-serif',
-  userSelect: 'none',
-  transition: 'opacity 0.2s, transform 0.2s',
-};
-
-// Inject global styles needed for animations
-export const ToolbarStyles = () => (
-  <style>
-    {`
-      #${'aig-lite-toolbar'} {
-        animation: fadeInToolbar 0.15s cubic-bezier(.4,0,.2,1);
-      }
-      @keyframes fadeInToolbar {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-      #${'aig-lite-toolbar'} button:active { 
-        background-color: #eaeaea !important; 
-      }
-    `}
-  </style>
-);
+export default App;
