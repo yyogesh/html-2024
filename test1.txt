@@ -1,11 +1,13 @@
-<tr *ngIf="items()?.length === 0">
-    <td colspan="5" class="text-center">
-      <ng-container [ngSwitch]="selectedStatus">
-        <span *ngSwitchCase="'value'">No items found for value status.</span>
-        <span *ngSwitchCase="'expired'">No expired items available.</span>
-        <span *ngSwitchCase="'pending'">No pending items to display.</span>
-        <span *ngSwitchCase="'All'">No items found in any status.</span>
-        <span *ngSwitchDefault>No data available.</span>
-      </ng-container>
-    </td>
-  </tr>
+export const TOOLBAR_ID = 'aig-lite-toolbar';
+export const DOT_ID = 'aig-lite-toolbar-dot';
+export const NOTIFICATION_ID = 'aig-lite-options-notification';
+export const UPLOAD_POPUP_ID = 'aig-lite-upload-suggestion';
+export const ROOT_ELEMENT_ID = 'aig-lite-react-root';
+
+export const STORAGE_KEYS = {
+    DISABLED_SITES: 'aiglite_toolbar_disabled_sites',
+    DISABLED_ALL: 'aiglite_toolbar_disabled_all',
+    DISABLED_ONCE: 'aiglite_toolbar_disabled_once',
+    SELECTED_TEXT: 'selectedTextExplanation',
+    SESSION: 'session',
+};
