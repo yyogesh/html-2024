@@ -1,13 +1,31 @@
-export const TOOLBAR_ID = 'aig-lite-toolbar';
-export const DOT_ID = 'aig-lite-toolbar-dot';
-export const NOTIFICATION_ID = 'aig-lite-options-notification';
-export const UPLOAD_POPUP_ID = 'aig-lite-upload-suggestion';
-export const ROOT_ELEMENT_ID = 'aig-lite-react-root';
+import { useChromeApi } from '../hooks/useChromeApi';
 
-export const STORAGE_KEYS = {
-    DISABLED_SITES: 'aiglite_toolbar_disabled_sites',
-    DISABLED_ALL: 'aiglite_toolbar_disabled_all',
-    DISABLED_ONCE: 'aiglite_toolbar_disabled_once',
-    SELECTED_TEXT: 'selectedTextExplanation',
-    SESSION: 'session',
+/**
+ * Logs a specific event with additional data to the service worker.
+ * @param {string} eventName - The name of the event to log.
+ * @param {Object} [additionalData={}] - Extra data to include with the log.
+ * @returns {Promise<void>}
+ */
+export const logToolbarEvent = async (eventName, additionalData = {}) => {
+  const { isAvailable, sendMessage } = useChromeApi();
+  if (!isAvailable()) {
+    console.warn(`AIG Lite: Chrome APIs not available, cannot log event: ${eventName}`);
+    return;
+  }
+
+  try {
+    await sendMessage({
+      action: 'logToService',
+      logData: {
+        event: eventName,
+        url: window.location.href,
+        title: document.title,
+        domain: window.location.hostname.replace(/^www\./, ''),
+        timestamp: Date.now(),
+        ...additionalData,
+      },
+    });
+  } catch (error) {
+    console.warn('AIG Lite: Error logging toolbar event:', error);
+  }
 };
