@@ -1,93 +1,38 @@
-/**
- * Checks if the chrome API is available.
- * @returns {boolean}
- */
-const isAvailable = () => {
-  try {
-    return typeof chrome !== 'undefined' && chrome.runtime?.id;
-  } catch (e) {
-    return false;
-  }
-};
+import { Readability } from '@mozilla/readability';
 
 /**
- * A hook that provides safe access to chrome extension APIs.
+ * Removes HTML tags from a string.
+ * @param {string} html - The HTML string to parse.
+ * @returns {string} The text content.
  */
-export const useChromeApi = () => {
-  /**
-   * Sends a message to other parts of the extension.
-   * @param {any} message - The message to send.
-   * @returns {Promise<any>} A promise that resolves with the response.
-   */
-  const sendMessage = (message) => {
-    return new Promise((resolve, reject) => {
-      if (!isAvailable()) return reject(new Error('Chrome API not available.'));
-      chrome.runtime.sendMessage(message, (response) => {
-        if (chrome.runtime.lastError) {
-          return reject(chrome.runtime.lastError);
-        }
-        resolve(response);
-      });
-    });
-  };
+function removeTags(html) {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  return doc.body.textContent || '';
+}
 
-  /**
-   * Gets values from chrome.storage.local.
-   * @param {string | string[] | null} keys - The key(s) to retrieve.
-   * @returns {Promise<Object>} A promise that resolves with the storage items.
-   */
-  const getStorage = (keys) => {
-    return new Promise((resolve, reject) => {
-      if (!isAvailable()) return reject(new Error('Chrome API not available.'));
-      chrome.storage.local.get(keys, (result) => {
-        if (chrome.runtime.lastError) {
-          return reject(chrome.runtime.lastError);
-        }
-        resolve(result);
-      });
-    });
-  };
+/**
+ * Processes the current document to extract the main article content and metadata.
+ * @param {Document} document - The document object to process.
+ * @returns {{content: string, metadata: Object}}
+ */
+export function processArticle(document) {
+  const documentClone = document.cloneNode(true);
+  const reader = new Readability(documentClone);
+  const article = reader.parse();
 
-  /**
-   * Sets values in chrome.storage.local.
-   * @param {Object} items - The items to store.
-   * @returns {Promise<void>}
-   */
-  const setStorage = (items) => {
-    return new Promise((resolve, reject) => {
-      if (!isAvailable()) return reject(new Error('Chrome API not available.'));
-      chrome.storage.local.set(items, () => {
-        if (chrome.runtime.lastError) {
-          return reject(chrome.runtime.lastError);
-        }
-        resolve();
-      });
-    });
-  };
+  const content = article ? removeTags(article.content) : document.body.innerText;
 
-  /**
-   * Gets the full URL for a resource within the extension.
-   * @param {string} path - The path to the resource.
-   * @returns {string} The full URL.
-   */
-  const getURL = (path) => {
-    if (!isAvailable()) return '';
-    return chrome.runtime.getURL(path);
-  };
-  
-  /**
-   * Adds a listener for messages from other parts of the extension.
-   * @param {Function} callback - The function to call when a message is received.
-   * @returns {Function} A cleanup function to remove the listener.
-   */
-  const addMessageListener = (callback) => {
-    if (isAvailable()) {
-      chrome.runtime.onMessage.addListener(callback);
-      return () => chrome.runtime.onMessage.removeListener(callback);
-    }
-    return () => {}; // Return no-op if API is not available
-  };
+  const metadata = article
+    ? {
+        title: article.title,
+        byline: article.byline,
+        length: article.length,
+        excerpt: article.excerpt,
+        siteName: article.siteName,
+      }
+    : {
+        title: document.title,
+      };
 
-
-  return { isAvailable, sendMessage, getStorage, setStorage, getURL, addMessageListener };
-};
+  return { content, metadata };
+}
