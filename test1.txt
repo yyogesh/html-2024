@@ -36,3 +36,55 @@ export function processArticle(document) {
 
   return { content, metadata };
 }
+
+
+
+import { useState, useEffect, useCallback } from 'react';
+import { useDebounce } from './useDebounce';
+import { TOOLBAR_ID } from '../utils/constants';
+
+/**
+ * @typedef {object} SelectionState
+ * @property {string} text - The selected text.
+ * @property {DOMRect | null} rect - The bounding rectangle of the selection.
+ */
+
+/**
+ * A hook to track user text selection on the page.
+ * @returns {SelectionState}
+ */
+export const useTextSelection = () => {
+  const [selection, setSelection] = useState({ text: '', rect: null });
+
+  const handleMouseUp = useCallback((event) => {
+    // Ignore clicks inside the toolbar
+    if (event.target.closest(`#${TOOLBAR_ID}`)) {
+      return;
+    }
+
+    const currentSelection = window.getSelection();
+    const selectedText = currentSelection?.toString().trim() || '';
+
+    if (selectedText) {
+      const range = currentSelection.getRangeAt(0);
+      setSelection({ text: selectedText, rect: range.getBoundingClientRect() });
+    } else {
+      // If there's no text, clear the selection
+      setSelection({ text: '', rect: null });
+    }
+  }, []);
+
+  const debouncedMouseUp = useDebounce(handleMouseUp, 50);
+
+  useEffect(() => {
+    document.addEventListener('mouseup', debouncedMouseUp);
+    document.addEventListener('mousedown', () => setSelection({ text: '', rect: null }));
+    
+    return () => {
+      document.removeEventListener('mouseup', debouncedMouseUp);
+      document.removeEventListener('mousedown', () => setSelection({ text: '', rect: null }));
+    };
+  }, [debouncedMouseUp]);
+
+  return selection;
+};
