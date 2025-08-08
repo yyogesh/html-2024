@@ -1,51 +1,135 @@
 import React, { useState } from 'react';
-import { dotBaseStyle, dotHoverStyle } from './FloatingDot.styles';
-import { DOT_ID } from '../../utils/constants';
+import { FloatingToolbarContainer, ToolbarStyles } from './FloatingToolbar.styles';
+import { useChromeApi } from '../../hooks/useChromeApi';
+import { logToolbarEvent } from '../../services/eventLogger';
+import { processArticle } from '../../services/articleProcessor';
+import { STORAGE_KEYS, TOOLBAR_ID } from '../../utils/constants';
+
+import { ToolbarButton } from './ToolbarButton';
+import { OptionsDropdown } from './OptionsDropdown';
+import { CopyIcon, ExplainIcon, OptionsIcon, LogoIcon } from './Icons'; // Assuming you create an Icons.jsx
 
 /**
  * @param {{
  * rect: DOMRect;
- * onHover: () => void;
+ * selectedText: string;
+ * onClose: () => void;
+ * onShowNotification: (message: string) => void;
  * }} props
  */
-export const FloatingDot = ({ rect, onHover }) => {
-  const [isHovered, setHovered] = useState(false);
-  
-  const style = {
-    ...dotBaseStyle,
-    ...(isHovered ? dotHoverStyle : {}),
-    top: `${window.scrollY + rect.top - 14}px`,
-    left: `${window.scrollX + rect.left - 4}px`,
+export const FloatingToolbar = ({ rect, selectedText, onClose, onShowNotification }) => {
+  const [isOptionsOpen, setOptionsOpen] = useState(false);
+  const { getURL, sendMessage, setStorage } = useChromeApi();
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(selectedText);
+    logToolbarEvent('toolbar_copy_clicked');
+    // You can add a visual confirmation here if needed
+  };
+
+  const handleExplain = async () => {
+    const { content } = processArticle(document);
+    const textData = {
+      message: `Explain this text in the context of the current page:\n\n${selectedText}`,
+      pageContent: content,
+      pageUrl: window.location.href,
+      pageTitle: document.title,
+      timestamp: Date.now(),
+      originalText: selectedText,
+    };
+
+    await setStorage({ [STORAGE_KEYS.SELECTED_TEXT]: textData });
+    await sendMessage({
+      type: 'open_side_panel',
+      data: textData,
+      directUserAction: true,
+      source: 'explain_this',
+    });
+    logToolbarEvent('toolbar_explain_clicked');
+    onClose();
+  };
+
+  const handleOpenPanel = () => {
+    sendMessage({ type: 'open_side_panel', directUserAction: true, source: 'toolbar_logo' });
+    logToolbarEvent('toolbar_logo_clicked');
+    onClose();
+  };
+
+  const handleOptionsToggle = (e) => {
+    e.stopPropagation();
+    setOptionsOpen(prev => !prev);
   };
   
+  // Responsive positioning
+  const style = { ...FloatingToolbarContainer };
+  const topOffset = 40; // Height of toolbar + margin
+  style.top = `${window.scrollY + rect.top - topOffset}px`;
+  style.left = `${window.scrollX + rect.left}px`;
+  
+  if (rect.top < topOffset) { // If not enough space on top, show below
+      style.top = `${window.scrollY + rect.bottom + 10}px`;
+  }
+
   return (
-    <div
-      id={DOT_ID}
-      style={style}
-      onMouseEnter={() => {
-        setHovered(true);
-        onHover();
-      }}
-      onMouseLeave={() => setHovered(false)}
-    />
+    <>
+      <ToolbarStyles />
+      <div id={TOOLBAR_ID} style={style} onMouseLeave={onClose}>
+        <ToolbarButton
+          tooltip="Open AIG Lite"
+          onClick={handleOpenPanel}
+          icon={<LogoIcon src={getURL('icon.png')} />}
+        />
+        <ToolbarButton tooltip="Copy" onClick={handleCopy} icon={<CopyIcon />} />
+        <ToolbarButton tooltip="Explain" onClick={handleExplain} icon={<ExplainIcon />} />
+        <ToolbarButton tooltip="Options" onClick={handleOptionsToggle} icon={<OptionsIcon />} />
+
+        {isOptionsOpen && (
+          <OptionsDropdown
+            onClose={() => setOptionsOpen(false)}
+            onCloseToolbar={onClose}
+            onShowNotification={onShowNotification}
+          />
+        )}
+      </div>
+    </>
   );
 };
 
 
+import React from 'react';
 
-export const dotBaseStyle = {
+// Using style objects to avoid adding a CSS-in-JS library dependency
+export const FloatingToolbarContainer = {
   position: 'absolute',
-  width: '8px',
-  height: '8px',
-  background: '#3b82f6', // blue-500
-  borderRadius: '50%',
   zIndex: 2147483647,
-  boxShadow: '0 1px 4px rgba(0,0,0,0.13)',
-  cursor: 'pointer',
-  transition: 'background 0.2s, transform 0.2s',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '2px',
+  background: 'white',
+  borderRadius: '10px',
+  boxShadow: '0 2px 8px rgba(0,0,0,0.13), 0 0 0 1px #eee',
+  height: '34px',
+  padding: '0 4px',
+  border: '1px solid #e0e0e0',
+  fontFamily: 'system-ui, -apple-system, sans-serif',
+  userSelect: 'none',
+  transition: 'opacity 0.2s, transform 0.2s',
 };
 
-export const dotHoverStyle = {
-  background: '#2563eb', // blue-600
-  transform: 'scale(1.2)',
-};
+// Inject global styles needed for animations
+export const ToolbarStyles = () => (
+  <style>
+    {`
+      #${'aig-lite-toolbar'} {
+        animation: fadeInToolbar 0.15s cubic-bezier(.4,0,.2,1);
+      }
+      @keyframes fadeInToolbar {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      #${'aig-lite-toolbar'} button:active { 
+        background-color: #eaeaea !important; 
+      }
+    `}
+  </style>
+);
