@@ -1,0 +1,127 @@
+import { Injectable } from '@angular/core';
+import { BehaviorSubject } from 'rxjs';
+
+@Injectable({ providedIn: 'root' })
+export class ErrorModalService {
+  private _isOpen$ = new BehaviorSubject<boolean>(false);
+  private _message$ = new BehaviorSubject<string>('');
+
+  isOpen$ = this._isOpen$.asObservable();
+  message$ = this._message$.asObservable();
+
+  show(message: string) {
+    this._message$.next(message);
+    this._isOpen$.next(true);
+  }
+
+  close() {
+    this._isOpen$.next(false);
+  }
+}
+
+
+
+import { Injectable } from '@angular/core';
+import {
+  HttpEvent, HttpHandler, HttpInterceptor, HttpRequest, HttpErrorResponse
+} from '@angular/common/http';
+import { Observable, throwError } from 'rxjs';
+import { catchError } from 'rxjs/operators';
+import { ErrorModalService } from './error-modal.service';
+import { AuthService } from './auth.service';
+
+@Injectable()
+export class AuthInterceptor implements HttpInterceptor {
+  constructor(
+    private authService: AuthService,
+    private errorModalService: ErrorModalService
+  ) {}
+
+  intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+    const authToken = abp.auth.getToken();
+
+    const authReq = request.clone({
+      headers: request.headers.set('Authorization', `Bearer ${authToken}`)
+    });
+
+    return next.handle(authReq).pipe(
+      catchError((error: HttpErrorResponse) => {
+        let message = 'An unexpected error occurred.';
+        if (error.error?.message) {
+          message = error.error.message;
+        } else if (error.status) {
+          message = `Error ${error.status}: ${error.statusText}`;
+        }
+
+        this.errorModalService.show(message);
+
+        return throwError(() => error);
+      })
+    );
+  }
+}
+
+
+
+import { Component } from '@angular/core';
+import { ErrorModalService } from './error-modal.service';
+
+@Component({
+  selector: 'app-error-modal',
+  template: `
+    <xds-modal
+      [(active)]="modalIsOpen"
+      [title]="'Error'"
+      (toggle)="close()"
+    >
+      <p>{{ message }}</p>
+    </xds-modal>
+  `
+})
+export class ErrorModalComponent {
+  modalIsOpen = false;
+  message = '';
+
+  constructor(private errorModalService: ErrorModalService) {
+    this.errorModalService.isOpen$.subscribe(open => this.modalIsOpen = open);
+    this.errorModalService.message$.subscribe(msg => this.message = msg);
+  }
+
+  close() {
+    this.errorModalService.close();
+  }
+}
+
+
+<app-error-modal></app-error-modal>
+
+
+
+
+import { Injectable } from '@angular/core';
+import { BehaviorSubject } from 'rxjs';
+import { environment } from '../environments/environment';
+
+@Injectable({ providedIn: 'root' })
+export class ErrorModalService {
+  private _isOpen$ = new BehaviorSubject<boolean>(false);
+  private _message$ = new BehaviorSubject<string>('');
+
+  isOpen$ = this._isOpen$.asObservable();
+  message$ = this._message$.asObservable();
+
+  show(message: string) {
+    if (!environment.showErrorModal) {
+      console.warn('Error modal is disabled. Message:', message);
+      return;
+    }
+    this._message$.next(message);
+    this._isOpen$.next(true);
+  }
+
+  close() {
+    this._isOpen$.next(false);
+  }
+}
+
+
