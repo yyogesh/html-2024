@@ -1,0 +1,121 @@
+<div class="card">
+  <div class="header">
+    <h3>My price documents</h3>
+    <div class="icons">
+      <span class="material-icons">star</span>
+      <span class="material-icons">more_vert</span>
+    </div>
+  </div>
+
+  <ul>
+    @for (doc of documents; track doc.id) {
+      <li>
+        <div class="doc-title">
+          <span class="material-icons star">star</span>
+          <div class="doc-info">
+            <div class="title">{{ doc.title }}</div>
+            <div class="description">{{ doc.description }}</div>
+          </div>
+          @if (doc.expiresIn) {
+            <span class="expire-badge">
+              Expires in {{ doc.expiresIn }} days
+            </span>
+          }
+        </div>
+      </li>
+    }
+  </ul>
+
+  <div class="view-all">VIEW ALL</div>
+</div>
+
+
+
+.card {
+  background: white;
+  border-radius: 8px;
+  padding: 1rem;
+  width: 360px;
+  font-family: Arial, sans-serif;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+
+  h3 {
+    font-size: 1rem;
+    font-weight: bold;
+  }
+
+  .icons {
+    display: flex;
+    gap: 0.5rem;
+    .material-icons {
+      cursor: pointer;
+      font-size: 20px;
+      color: #555;
+    }
+  }
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+
+  li {
+    display: flex;
+    align-items: flex-start;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #eee;
+
+    .doc-title {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      position: relative;
+
+      .star {
+        color: gold;
+        font-size: 20px;
+        margin-right: 0.5rem;
+      }
+
+      .doc-info {
+        flex: 1;
+      }
+
+      .title {
+        font-weight: bold;
+        font-size: 0.9rem;
+      }
+
+      .description {
+        font-size: 0.8rem;
+        color: #555;
+      }
+
+      .expire-badge {
+        background: #fce8e6;
+        color: #c5221f;
+        font-size: 0.7rem;
+        padding: 2px 6px;
+        border-radius: 4px;
+        position: absolute;
+        right: 0;
+      }
+    }
+  }
+}
+
+.view-all {
+  text-align: center;
+  color: #1a73e8;
+  font-weight: bold;
+  padding: 0.5rem 0;
+  cursor: pointer;
+}
