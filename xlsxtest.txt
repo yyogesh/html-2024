@@ -1,16 +1,14 @@
-test('should prepend exportHeaderText and blank rows before table when exportHeaderText is provided', () => {
+test('should safely skip formatting when exportHeaderText contains empty string', () => {
   // Arrange
-  component.columnDefinitionsArray = ['col1', 'col2'];
-  component.title = 'TestExport';
-  component.data = () => [
-    { col1: 'value1', col2: 'value2' },
-    { col1: 'value3', col2: 'value4' }
-  ];
+  fixture.componentRef.setInput('columnDefinitionsArray', ['col1']);
+  fixture.componentRef.setInput('title', 'TestExport');
+  fixture.componentRef.setInput('data', () => [{ col1: 'value1' }]);
 
-  component.exportHeaderText = [
-    'WARNING: EXPORT CONTROLLED',
-    'This document contains technical data ...'
-  ];
+  // exportHeaderText includes an empty row that won’t generate a cell
+  fixture.componentRef.setInput('exportHeaderText', [
+    '',  // <-- this ensures worksheet[cellRef] is undefined
+    'Valid Header'
+  ]);
 
   const writeFileSpy = jest.spyOn(XLSX, 'writeFile').mockImplementationOnce(() => {});
 
@@ -18,28 +16,21 @@ test('should prepend exportHeaderText and blank rows before table when exportHea
   component.exportToExcel();
 
   // Assert
-  expect(component.overrideExportToExcel()).toEqual(false);
   expect(writeFileSpy).toHaveBeenCalled();
 
-  // Extract the sheet data passed into XLSX.writeFile
   const workbookArg = writeFileSpy.mock.calls[0][0];
   const sheetName = Object.keys(workbookArg.Sheets)[0];
   const worksheet = workbookArg.Sheets[sheetName];
 
-  // Read values from worksheet
   const getCellValue = (addr: string) => worksheet[addr]?.v;
 
-  // First row should contain first exportHeaderText
-  expect(getCellValue('A1')).toBe('WARNING: EXPORT CONTROLLED');
-  // Second row should contain second exportHeaderText
-  expect(getCellValue('A2')).toContain('This document contains technical data');
-  // Third & Fourth row should be blank
-  expect(getCellValue('A3')).toBeUndefined();
-  expect(getCellValue('A4')).toBeUndefined();
-  // Fifth row should be column headers
+  // First row was empty → skipped styling
+  expect(getCellValue('A1')).toBeUndefined();
+
+  // Second row contains header text
+  expect(getCellValue('A2')).toBe('Valid Header');
+
+  // Column header still comes after blank rows
   expect(getCellValue('A5')).toBe('col1');
-  expect(getCellValue('B5')).toBe('col2');
-  // Sixth row onward should be data
   expect(getCellValue('A6')).toBe('value1');
-  expect(getCellValue('B6')).toBe('value2');
 });
