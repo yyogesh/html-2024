@@ -1,0 +1,85 @@
+using Bunit;
+using Humana.Crt.WebApp.Components; // Assuming SearchResultView is in this namespace
+using Microsoft.Extensions.DependencyInjection;
+using Moq;
+using System.Reflection;
+using System.Threading.Tasks;
+using Microsoft.VisualStudio.TestTools.UnitTesting; // Assuming MSTest from [TestClass]
+using Microsoft.JSInterop; // Required for JSException
+
+namespace Humana.Crt.WebApp.UnitTests.Components
+{
+    [TestClass]
+    public partial class TestSearchResultView // Using partial class to add the new test
+    {
+        // This constant should match the one used in your component.
+        private const string JS_FUNC_DISPOSE_AUDIO = "disposeAudio";
+
+        /// <summary>
+        /// Tests the success scenario where the JavaScript interop call completes without error.
+        /// </summary>
+        [TestMethod]
+        [TestCategory("HappyPath")]
+        public async Task OnModalClosed_WhenJsCallSucceeds_InvokesDisposeAudio()
+        {
+            // Arrange
+            // 1. Set up the bUnit JSInterop to intercept JavaScript calls.
+            var jsModule = testContext.JSInterop.SetupModule("./_content/Humana.Crt.WebApp.Shared/Views/SearchResultView.razor.js");
+
+            // 2. Set up a planned invocation for the JavaScript function we expect to be called.
+            var plannedJsCall = jsModule.SetupVoid(JS_FUNC_DISPOSE_AUDIO);
+
+            // 3. Render the component to get an instance of it.
+            var renderedView = testContext.RenderComponent<SearchResultView>();
+
+            // Act
+            // 4. Invoke the private 'OnModalClosed' method using reflection.
+            var methodInfo = typeof(SearchResultView).GetMethod("OnModalClosed", BindingFlags.NonPublic | BindingFlags.Instance);
+            
+            if (methodInfo == null)
+            {
+                Assert.Fail("The private method 'OnModalClosed' could not be found.");
+                return; 
+            }
+
+            var taskResult = (Task)methodInfo.Invoke(renderedView.Instance, null);
+            await taskResult;
+
+            // Assert
+            // 5. Verify that the JavaScript function was called exactly once.
+            plannedJsCall.VerifyInvoke(calledTimes: 1);
+        }
+
+        /// <summary>
+        /// Tests the error scenario where the JavaScript interop call throws an exception.
+        /// </summary>
+        [TestMethod]
+        [TestCategory("ErrorHandling")]
+        public async Task OnModalClosed_WhenJsCallFails_ThrowsException()
+        {
+            // Arrange
+            // 1. Set up the JS Interop.
+            var jsModule = testContext.JSInterop.SetupModule("./_content/Humana.Crt.WebApp.Shared/Views/SearchResultView.razor.js");
+
+            // 2. Configure the JS interop mock to throw a JSException when the function is called.
+            jsModule.SetupVoid(JS_FUNC_DISPOSE_AUDIO).SetException(new JSException("Simulated error from JavaScript"));
+            
+            var renderedView = testContext.RenderComponent<SearchResultView>();
+
+            var methodInfo = typeof(SearchResultView).GetMethod("OnModalClosed", BindingFlags.NonPublic | BindingFlags.Instance);
+             if (methodInfo == null)
+            {
+                Assert.Fail("The private method 'OnModalClosed' could not be found.");
+                return;
+            }
+
+            // Act & Assert
+            // 3. Verify that invoking the method results in the expected exception being thrown.
+            await Assert.ThrowsExceptionAsync<JSException>(async () => {
+                var taskResult = (Task)methodInfo.Invoke(renderedView.Instance, null);
+                await taskResult;
+            });
+        }
+    }
+}
+
