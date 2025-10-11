@@ -2,33 +2,27 @@ getCurrentDayMarkUpLine(isWeeklyView: boolean): any {
   const today = new Date();
   
   // =======================================================
-  // Case 1: The view is the WEEKLY GRID (Months on X-axis)
+  // Case 1: The view is the WEEKLY GRID (No Changes Here)
   // =======================================================
   if (isWeeklyView) {
-    // We need to find the name of the current month to mark the X-axis
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const currentMonthCategory = monthNames[today.getMonth()];
 
     return {
-      silent: true,    // Makes the line non-interactive
-      symbol: 'none',  // Hides the circles at the ends of the line
+      silent: true,
+      symbol: 'none',
       data: [
         {
-          // This tells ECharts to draw a vertical line on the specified x-axis category
           xAxis: currentMonthCategory, 
-          
-          // Style the line
           lineStyle: {
             color: 'red',
             width: 2,
             type: 'solid'
           },
-
-          // Optional: Add a label to the line
           label: {
             show: true,
             formatter: 'Current Month',
-            position: 'end', // Can be 'start', 'middle', or 'end'
+            position: 'end',
             color: 'red'
           }
         }
@@ -37,7 +31,7 @@ getCurrentDayMarkUpLine(isWeeklyView: boolean): any {
   } 
   
   // =======================================================
-  // Case 2: The view is the DAILY CALENDAR (Original Code)
+  // Case 2: The view is the DAILY CALENDAR (Updated Logic)
   // =======================================================
   else {
     const formattedDate = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
@@ -45,25 +39,48 @@ getCurrentDayMarkUpLine(isWeeklyView: boolean): any {
     return {
       type: 'custom',
       coordinateSystem: 'calendar',
+      // ▼▼▼ THE renderItem FUNCTION IS UPDATED BELOW ▼▼▼
       renderItem: (params: any, api: any) => {
-        // Safety check in case the date is out of range
         if (!params.coordSys) {
           return;
         }
         
         const coordSys = params.coordSys;
+        const xPos = coordSys.x;
+        const yEndPos = coordSys.y + coordSys.height;
+
+        // We return a 'group' to draw both the line and the text
         return {
-          type: 'line',
-          shape: {
-            x1: coordSys.x, // Use the left edge of the cell
-            y1: coordSys.y,
-            x2: coordSys.x, // Use the left edge of the cell
-            y2: coordSys.y + coordSys.height,
-          },
-          style: {
-            stroke: 'red',
-            lineWidth: 2,
-          },
+          type: 'group',
+          children: [
+            // Element 1: The Red Line
+            {
+              type: 'line',
+              shape: {
+                x1: xPos,
+                y1: coordSys.y,
+                x2: xPos,
+                y2: yEndPos,
+              },
+              style: {
+                stroke: 'red',
+                lineWidth: 2,
+              },
+            },
+            // Element 2: The Label
+            {
+              type: 'text',
+              style: {
+                text: 'Today',
+                fill: 'red',
+                fontSize: 10,
+                x: xPos,
+                y: yEndPos + 5, // Position 5px below the line
+                textAlign: 'center',
+                textVerticalAlign: 'top',
+              },
+            },
+          ],
         };
       },
       data: [[formattedDate]],
