@@ -1,0 +1,74 @@
+getCurrentDayMarkUpLine(isWeeklyView: boolean): any {
+  const today = new Date();
+  
+  // =======================================================
+  // Case 1: The view is the WEEKLY GRID (Months on X-axis)
+  // =======================================================
+  if (isWeeklyView) {
+    // We need to find the name of the current month to mark the X-axis
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const currentMonthCategory = monthNames[today.getMonth()];
+
+    return {
+      silent: true,    // Makes the line non-interactive
+      symbol: 'none',  // Hides the circles at the ends of the line
+      data: [
+        {
+          // This tells ECharts to draw a vertical line on the specified x-axis category
+          xAxis: currentMonthCategory, 
+          
+          // Style the line
+          lineStyle: {
+            color: 'red',
+            width: 2,
+            type: 'solid'
+          },
+
+          // Optional: Add a label to the line
+          label: {
+            show: true,
+            formatter: 'Current Month',
+            position: 'end', // Can be 'start', 'middle', or 'end'
+            color: 'red'
+          }
+        }
+      ]
+    };
+  } 
+  
+  // =======================================================
+  // Case 2: The view is the DAILY CALENDAR (Original Code)
+  // =======================================================
+  else {
+    const formattedDate = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+
+    return {
+      type: 'custom',
+      coordinateSystem: 'calendar',
+      renderItem: (params: any, api: any) => {
+        // Safety check in case the date is out of range
+        if (!params.coordSys) {
+          return;
+        }
+        
+        const coordSys = params.coordSys;
+        return {
+          type: 'line',
+          shape: {
+            x1: coordSys.x, // Use the left edge of the cell
+            y1: coordSys.y,
+            x2: coordSys.x, // Use the left edge of the cell
+            y2: coordSys.y + coordSys.height,
+          },
+          style: {
+            stroke: 'red',
+            lineWidth: 2,
+          },
+        };
+      },
+      data: [[formattedDate]],
+      z: 1000,
+      silent: true,
+    };
+  }
+}
