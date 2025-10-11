@@ -11,6 +11,9 @@ getCurrentDayMarkUpLine(isWeeklyView: boolean): any {
     return {
       silent: true,
       symbol: 'none',
+      // The animation for this standard markLine is enabled by default
+      animation: true, 
+      animationDuration: 1000,
       data: [
         {
           xAxis: currentMonthCategory, 
@@ -31,7 +34,7 @@ getCurrentDayMarkUpLine(isWeeklyView: boolean): any {
   } 
   
   // =======================================================
-  // Case 2: The view is the DAILY CALENDAR (Updated Logic)
+  // Case 2: The view is the DAILY CALENDAR (Updated with Animation)
   // =======================================================
   else {
     const formattedDate = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
@@ -39,7 +42,8 @@ getCurrentDayMarkUpLine(isWeeklyView: boolean): any {
     return {
       type: 'custom',
       coordinateSystem: 'calendar',
-      // ▼▼▼ THE renderItem FUNCTION IS UPDATED BELOW ▼▼▼
+      // This enables animation for the custom series
+      animation: true,
       renderItem: (params: any, api: any) => {
         if (!params.coordSys) {
           return;
@@ -47,44 +51,59 @@ getCurrentDayMarkUpLine(isWeeklyView: boolean): any {
         
         const coordSys = params.coordSys;
         const xPos = coordSys.x;
-        const yEndPos = coordSys.y + coordSys.height;
+        const yStartPos = coordSys.y;
+        const yEndPos = yStartPos + coordSys.height;
 
-        // We return a 'group' to draw both the line and the text
         return {
           type: 'group',
           children: [
-            // Element 1: The Red Line
+            // Element 1: The Animated Line
             {
               type: 'line',
+              // Tell ECharts to animate changes to the shape
+              transition: ['shape'], 
               shape: {
                 x1: xPos,
-                y1: coordSys.y,
+                y1: yStartPos,
                 x2: xPos,
-                y2: yEndPos,
+                y2: yEndPos, // The final shape
+              },
+              // Define the starting shape for the animation
+              enterFrom: {
+                shape: { y2: yStartPos } // Start with zero height
               },
               style: {
                 stroke: 'red',
                 lineWidth: 2,
               },
             },
-            // Element 2: The Label
+            // Element 2: The Animated Label
             {
               type: 'text',
+              // Tell ECharts to animate style changes (like opacity)
+              transition: ['style'], 
+              // Delay the label's animation to let the line draw first
+              enterAnimation: { delay: 500 },
               style: {
                 text: 'Today',
                 fill: 'red',
                 fontSize: 10,
                 x: xPos,
-                y: yEndPos + 5, // Position 5px below the line
+                y: yEndPos + 5,
                 textAlign: 'center',
                 textVerticalAlign: 'top',
+              },
+              // Define the starting style for the animation
+              enterFrom: {
+                style: { opacity: 0 } // Start fully transparent
               },
             },
           ],
         };
       },
       data: [[formattedDate]],
-      z: 1000,
+      // This high z-index ensures the line is drawn ON TOP of the heatmap
+      z: 1000, 
       silent: true,
     };
   }
