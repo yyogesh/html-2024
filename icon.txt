@@ -1,0 +1,21 @@
+export const EquipmentUrlMap: Record<string, string> = {
+  all: 'https://www.up.com/customers/all/equipment/descriptions/index.htm',
+  'auto-rack': 'https://www.up.com/shipping/resources/rail-equipment/auto-racks',
+  container: 'https://www.up.com/shipping/resources/rail-equipment/intermodal',
+  'covered-hopper': 'https://www.up.com/shipping/resources/rail-equipment/covered-hoppers',
+  'flat-car': 'https://www.up.com/shipping/resources/rail-equipment/flatcars',
+  gondola: 'https://www.up.com/shipping/resources/rail-equipment/gondolas',
+  'tank-car': 'https://www.up.com/shipping/resources/rail-equipment/tank-cars',
+  'hopper-full': 'https://www.up.com/shipping/resources/rail-equipment/open-top-hoppers',
+  boxcar: 'https://www.up.com/shipping/resources/rail-equipment/boxcars',
+  trailer: 'https://www.up.com/shipping/resources/rail-equipment/intermodal'
+};
+
+
+getEquipmentUrl(icon: string): string {
+    return EquipmentUrlMap[icon] || '';
+  }
+
+ <a [href]="getEquipmentUrl(item.icon)" target="_blank">
+    {{ item.equipment }}
+  </a>
