@@ -1,0 +1,102 @@
+<ng-container *ngFor="let resp of results?.response">
+  <div
+    class="rate-fuel-value-row"
+    [ngClass]="getRateBoxClass(resp)"
+  >
+    <div class="rate-fuel-date">
+      <span *ngIf="isEffectiveDateFuture(resp.priceEffectiveDate)"
+            class="rate-date-label green">
+        START: {{ resp.priceEffectiveDate | date: 'MMM, d yyyy' }}
+      </span>
+
+      <span *ngIf="showExpireDate(resp)"
+            class="rate-date-label red">
+        EXPIRE: {{ resp.rateExpirationDate | date: 'MMM, d yyyy' }}
+      </span>
+    </div>
+
+    <div class="rate-fuel-value-block">
+      <div class="rate-fuel-value">
+        <span class="rate-fuel-amount">${{ resp.price }}</span>
+        <span class="rate-fuel-space"></span>
+        <span class="rate-fuel-per rate-fuel-amount">{{ resp.priceType }}</span>
+      </div>
+
+      <div class="rate-fuel-extra">
+        <a href="https://www.up.com/customers/surcharge/" target="_blank">
+          +${{ resp.fuelSurcharge }} ({{ resp.miles }} miles)
+        </a>
+      </div>
+    </div>
+  </div>
+</ng-container>
+
+
+
+getRateBoxClass(resp: any): string {
+  const today = new Date();
+  const effective = new Date(resp.priceEffectiveDate);
+  const expire = new Date(resp.rateExpirationDate);
+  const shipment = new Date(this.searchCriteria.shipmentDate); // if available
+
+  // Condition 1: Green box (effective date > today)
+  if (effective > today) {
+    return 'green-box';
+  }
+
+  // Condition 2: Red box (shipment < today and expire < today)
+  if (shipment < today && expire < today && resp.rateExpirationDate) {
+    return 'red-box';
+  }
+
+  // Condition 3: Red box (expire within 45 days)
+  const daysDiff = (expire.getTime() - today.getTime()) / (1000 * 3600 * 24);
+  if (daysDiff <= 45 && daysDiff >= 0) {
+    return 'red-box';
+  }
+
+  return '';
+}
+
+isEffectiveDateFuture(date: string): boolean {
+  return new Date(date) > new Date();
+}
+
+showExpireDate(resp: any): boolean {
+  const today = new Date();
+  const expire = new Date(resp.rateExpirationDate);
+  const shipment = new Date(this.searchCriteria.shipmentDate); // if available
+
+  const isExpired = shipment < today && expire < today;
+  const within45Days =
+    (expire.getTime() - today.getTime()) / (1000 * 3600 * 24) <= 45 &&
+    expire > today;
+
+  return isExpired || within45Days;
+}
+
+
+.green-box {
+  background-color: #e6f4ea;
+  border-left: 4px solid #34a853;
+  padding: 8px;
+  border-radius: 8px;
+}
+
+.red-box {
+  background-color: #fde8e8;
+  border-left: 4px solid #d93025;
+  padding: 8px;
+  border-radius: 8px;
+}
+
+.rate-date-label.green {
+  color: #0b8043;
+  font-weight: bold;
+}
+
+.rate-date-label.red {
+  color: #d93025;
+  font-weight: bold;
+}
+
