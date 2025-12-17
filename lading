@@ -1,0 +1,277 @@
+<div class="card-header-new">
+  <div class="encrypted-container">
+    
+    <!-- Header Section -->
+    <div class="encrypted-text">
+      <h1 class="main-heading">
+        Manage and track incoming payments from 
+        <span class="org-name">{{ organizationName }}</span>.
+      </h1>
+      
+      <p class="description-text">
+        <strong>{{ organizationName }}</strong> has partnered with <strong>BILL</strong> to manage their international
+        payments. They're inviting you to create a vendor account to help
+        you get paid faster and more conveniently.
+      </p>
+    </div>
+
+    <!-- Features Grid -->
+    <div class="grid-layout">
+      <div class="content-field" *ngFor="let feature of features">
+        <div class="feature-icon">
+          <div class="icon-wrapper" [ngClass]="'icon-wrapper--' + feature.icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+              <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+        
+        <div class="feature-content">
+          <h3 class="feature-title">{{ feature.title }}</h3>
+          <p class="feature-description">{{ feature.description }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer Link -->
+    <div class="currencyclaim-content">
+      <a href="javascript:void(0)" class="link-primary" (click)="onLearnMore()">
+        Learn more about BILL
+      </a>
+    </div>
+    
+  </div>
+</div>
+
+
+
+
+ features: Feature[] = [
+    {
+      icon: 'document',
+      title: 'Let your vendors handle the details',
+      description: 'No manual entry of bank codes: vendors handle their own set up, reducing errors.'
+    },
+    {
+      icon: 'support',
+      title: 'Vendors get answers, you get time back',
+      description: 'Vendor have self-serve access to payment and invoice info, so you spend less time fielding inquiries.'
+    },
+    {
+      icon: 'currency',
+      title: 'Choose the currency that fits',
+      description: 'Vendors select the right currency for their bank account.'
+    }
+  ];
+
+  onLearnMore(): void {
+    // Navigate to BILL information page
+    window.open('https://www.bill.com', '_blank');
+  }
+
+
+// Using existing SCSS variables from your codebase
+// Import your variables file: @import 'path/to/your/variables';
+
+.card-header-new {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--trl-space-200);
+}
+
+.encrypted-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--trl-space-200);
+  width: 100%;
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.encrypted-text {
+  color: var(--trl-color-text-primary);
+  font: var(--trl-font-desktop-body-small);
+  margin-left: var(--trl-offset-side-6);
+  
+  .main-heading {
+    font-size: 28px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--trl-color-text-primary);
+    margin: 0 0 var(--trl-space-200) 0;
+    letter-spacing: -0.02em;
+    
+    @media screen and (min-width: 768px) {
+      font-size: 32px;
+    }
+  }
+  
+  .org-name {
+    color: var(--trl-color-text-primary);
+    font-weight: 600;
+  }
+  
+  .description-text {
+    font: var(--trl-font-desktop-body-small);
+    color: var(--trl-color-text-primary);
+    margin: 0;
+    line-height: 1.6;
+    
+    strong {
+      font-weight: 600;
+    }
+  }
+}
+
+.grid-layout {
+  padding: 16px 0px 16px 0px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--trl-space-200);
+}
+
+.content-field {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  
+  @media screen and (min-width: 570px) {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .feature-icon {
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .icon-wrapper {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f3f4f6;
+    transition: all 0.2s ease;
+    
+    svg {
+      width: 24px;
+      height: 24px;
+    }
+    
+    &--document {
+      background-color: #FEF3F2;
+      color: #DC2626;
+    }
+    
+    &--support {
+      background-color: #F0F9FF;
+      color: #0284C7;
+    }
+    
+    &--currency {
+      background-color: #F7FEE7;
+      color: #65A30D;
+    }
+  }
+  
+  .feature-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .feature-title {
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--trl-color-text-primary);
+    margin: 0;
+    
+    @media screen and (min-width: 768px) {
+      font-size: 17px;
+    }
+  }
+  
+  .feature-description {
+    font: var(--trl-font-desktop-body-small);
+    color: var(--trl-color-text-primary);
+    margin: 0;
+    line-height: 1.6;
+    opacity: 0.75;
+  }
+}
+
+.currencyclaim-content {
+  color: var(--trl-color-text-primary);
+  font: var(--trl-font-desktop-body-small);
+  overflow-wrap: anywhere;
+  margin-left: var(--trl-offset-side-6);
+  padding-top: var(--trl-space-200);
+  border-top: 1px solid #e5e5e5;
+  
+  .link-primary {
+    color: #5B4CCC;
+    text-decoration: none;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    transition: all 0.2s ease;
+    
+    &:hover {
+      color: #4A3CAA;
+      text-decoration: underline;
+    }
+    
+    &:focus {
+      outline: 2px solid #5B4CCC;
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+  }
+}
+
+// Responsive media query for grid
+@media screen and (max-width: 570px) {
+  .TrlLayoutGridCell {
+    grid-column-end: span 12;
+    word-break: break-word;
+  }
+}
+
+// Animation
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.content-field {
+  animation: fadeInUp 0.5s ease-out backwards;
+  
+  &:nth-child(1) {
+    animation-delay: 0.1s;
+  }
+  
+  &:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+  
+  &:nth-child(3) {
+    animation-delay: 0.3s;
+  }
+}
