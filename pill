@@ -1,0 +1,190 @@
+// condition-matcher.service.ts
+import { Injectable } from '@angular/core';
+
+interface Condition {
+  includeIndicator?: string;
+  code?: string;
+  valueA?: string;
+  valueB?: string;
+  valueC?: string;
+  logic?: string;
+  conditionsBulk?: any;
+}
+
+interface RuleDefinition {
+  includedExclude: string;
+  genesisCondition: string;
+  valueA: string;
+  valueB: string;
+  chipName: string;
+  contractLanguage: string;
+}
+
+@Injectable({
+  providedIn: 'root'
+})
+export class ConditionMatcherService {
+  
+  // Rule definitions from your first image
+  private rules: RuleDefinition[] = [
+    {
+      includedExclude: 'Include',
+      genesisCondition: 'COMB',
+      valueA: 'RULE11',
+      valueB: 'ORIG',
+      chipName: 'Rule 11 at Origin',
+      contractLanguage: 'Price must be used in combination with other prices for the portion of the shipment prior to specified origin. Separate freight bills will be issued for each price used according to the provisions of Railway Accounting Rule 11.'
+    },
+    {
+      includedExclude: 'Include',
+      genesisCondition: 'COMB',
+      valueA: 'RULE11',
+      valueB: 'DEST',
+      chipName: 'Rule 11 at Destination',
+      contractLanguage: 'Price must be used in combination with other prices for the portion of the shipment subsequent to specified destination. Separate freight bills will be issued for each price used according to the provisions of Railway Accounting Rule 11.'
+    },
+    {
+      includedExclude: 'Include',
+      genesisCondition: 'COMB',
+      valueA: 'RULE11',
+      valueB: 'BOTH',
+      chipName: 'Rule 11 at both origin and destination',
+      contractLanguage: 'Price must be used in combination with other prices for the portion of the shipment both prior to specified origin and subsequent to specified destination. Separate freight bills will be issued for each price used according to the provisions of Railway Accounting Rule 11.'
+    },
+    {
+      includedExclude: 'Exclude',
+      genesisCondition: 'COMB',
+      valueA: 'RULE11',
+      valueB: 'ORIG',
+      chipName: 'No Rule 11 at Origin',
+      contractLanguage: 'Price must not be used in combination with other prices for the portion of the shipment prior to a specified origin. The waybill origin must equal the price origin.'
+    },
+    {
+      includedExclude: 'Exclude',
+      genesisCondition: 'COMB',
+      valueA: 'RULE11',
+      valueB: 'DEST',
+      chipName: 'No Rule 11 at Destination',
+      contractLanguage: 'Price must not be used in combination with other prices for the portion of the shipment subsequent to specified destination. The waybill destination must equal the price destination.'
+    },
+    {
+      includedExclude: 'Exclude',
+      genesisCondition: 'COMB',
+      valueA: 'RULE11',
+      valueB: 'BOTH',
+      chipName: 'No Rule 11 at Origin and Destination',
+      contractLanguage: 'Price must not be used in combination with other prices for the portion of the shipment both prior to specified origin and subsequent to specified destination. The waybill origin/destination must equal the price origin/destination.'
+    },
+    {
+      includedExclude: 'Include',
+      genesisCondition: 'ASPUB',
+      valueA: 'ORIG',
+      valueB: '',
+      chipName: 'No Rule 11 at Origin',
+      contractLanguage: 'Price must not be used in combination with other prices for the portion of the shipment prior to specified origin. The waybill origin must equal the price origin.'
+    },
+    {
+      includedExclude: 'Include',
+      genesisCondition: 'ASPUB',
+      valueA: 'DEST',
+      valueB: '',
+      chipName: 'No Rule 11 at Destination',
+      contractLanguage: 'Price must not be used in combination with other prices for the portion of the shipment subsequent to specified destination. The waybill destination must equal the price destination.'
+    },
+    {
+      includedExclude: 'Include',
+      genesisCondition: 'ASPUB',
+      valueA: 'BOTH',
+      valueB: '',
+      chipName: 'No Rule 11 at Origin and Destination',
+      contractLanguage: 'Price must not be used in combination with other prices for the portion of the shipment both prior to specified origin and subsequent to specified destination. The waybill origin/destination must equal the price origin/destination.'
+    }
+  ];
+
+  /**
+   * Processes conditions array and returns matching chip names
+   */
+  getMatchingChipNames(conditions: any[]): string[] {
+    const chipNames: string[] = [];
+
+    if (!conditions || !Array.isArray(conditions)) {
+      return chipNames;
+    }
+
+    conditions.forEach(condition => {
+      const chipName = this.processCondition(condition);
+      if (chipName) {
+        chipNames.push(chipName);
+      }
+    });
+
+    return chipNames;
+  }
+
+  /**
+   * Processes a single condition object
+   */
+  private processCondition(condition: any): string | null {
+    // Handle mainList conditions
+    if (condition.mainList && Array.isArray(condition.mainList)) {
+      for (const item of condition.mainList) {
+        const chipName = this.matchRule(item);
+        if (chipName) {
+          return chipName;
+        }
+      }
+    }
+
+    // Handle subList conditions
+    if (condition.subList && Array.isArray(condition.subList)) {
+      for (const item of condition.subList) {
+        const chipName = this.processCondition(item);
+        if (chipName) {
+          return chipName;
+        }
+      }
+    }
+
+    // Handle direct condition
+    const chipName = this.matchRule(condition);
+    if (chipName) {
+      return chipName;
+    }
+
+    return null;
+  }
+
+  /**
+   * Matches a condition against rule definitions
+   */
+  private matchRule(condition: Condition): string | null {
+    const includeIndicator = condition.includeIndicator?.toUpperCase();
+    const code = condition.code?.toUpperCase();
+    const valueA = condition.valueA?.toUpperCase();
+    const valueB = condition.valueB?.toUpperCase();
+
+    for (const rule of this.rules) {
+      const includeMatch = includeIndicator === rule.includedExclude.toUpperCase();
+      const codeMatch = code === rule.genesisCondition.toUpperCase();
+      const valueAMatch = valueA === rule.valueA.toUpperCase();
+      const valueBMatch = !rule.valueB || valueB === rule.valueB.toUpperCase();
+
+      if (includeMatch && codeMatch && valueAMatch && valueBMatch) {
+        return rule.chipName;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Gets full rule details for a matched condition
+   */
+  getRuleDetails(condition: Condition): RuleDefinition | null {
+    const chipName = this.matchRule(condition);
+    if (chipName) {
+      return this.rules.find(rule => rule.chipName === chipName) || null;
+    }
+    return null;
+  }
+}
