@@ -1,0 +1,149 @@
+
+
+## Solution for .NET Backend
+
+Add the CSP header in your .NET application. Choose one of these approaches:
+
+### Option 1: Using Middleware (Recommended)
+
+Create a middleware class:
+
+```csharp
+public class SecurityHeadersMiddleware
+{
+    private readonly RequestDelegate _next;
+
+    public SecurityHeadersMiddleware(RequestDelegate next)
+    {
+        _next = next;
+    }
+
+    public async Task InvokeAsync(HttpContext context)
+    {
+        context.Response.Headers.Add("Content-Security-Policy", 
+            "default-src 'self'; " +
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+            "style-src 'self' 'unsafe-inline'; " +
+            "img-src 'self' data: https:; " +
+            "font-src 'self' data:; " +
+            "connect-src 'self'; " +
+            "frame-src 'self'; " +
+            "frame-ancestors 'self'; " +
+            "form-action 'self'; " +
+            "object-src 'none'; " +
+            "base-uri 'self';"
+        );
+
+        await _next(context);
+    }
+}
+```
+
+Register it in `Program.cs` or `Startup.cs`:
+
+```csharp
+// In Program.cs (.NET 6+)
+app.UseMiddleware<SecurityHeadersMiddleware>();
+
+// Or in Startup.cs (.NET 5 and earlier)
+app.UseMiddleware<SecurityHeadersMiddleware>();
+```
+
+### Option 2: Using web.config (IIS)
+
+```xml
+<configuration>
+  <system.webServer>
+    <httpProtocol>
+      <customHeaders>
+        <add name="Content-Security-Policy" 
+             value="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; frame-src 'self'; frame-ancestors 'self'; form-action 'self'; object-src 'none'; base-uri 'self';" />
+      </customHeaders>
+    </httpProtocol>
+  </system.webServer>
+</configuration>
+```
+
+## Why Angular Needs These Permissions
+
+- **`'unsafe-inline'` and `'unsafe-eval'` for script-src**: Angular's JIT compiler and zone.js require these
+- **`'unsafe-inline'` for style-src**: Angular's component styles are injected inline
+- **`data:` for img-src and font-src**: Angular may use data URIs for images and fonts
+
+## Stricter Policy (Production - Use AOT Compilation)
+
+If you're using Angular's AOT (Ahead-of-Time) compilation in production, you can remove `'unsafe-eval'`:
+
+```csharp
+"script-src 'self' 'unsafe-inline'; " +
+```
+
+## Even Stricter Policy (Best Practice)
+
+For maximum security, use nonces or hashes instead of `'unsafe-inline'`:
+
+### 1. Generate a nonce in .NET:
+
+```csharp
+public class SecurityHeadersMiddleware
+{
+    private readonly RequestDelegate _next;
+
+    public SecurityHeadersMiddleware(RequestDelegate next)
+    {
+        _next = next;
+    }
+
+    public async Task InvokeAsync(HttpContext context)
+    {
+        var nonce = Convert.ToBase64String(Guid.NewGuid().ToByteArray());
+        context.Items["csp-nonce"] = nonce;
+
+        context.Response.Headers.Add("Content-Security-Policy", 
+            $"default-src 'self'; " +
+            $"script-src 'self' 'nonce-{nonce}'; " +
+            $"style-src 'self' 'nonce-{nonce}'; " +
+            $"img-src 'self' data: https:; " +
+            $"font-src 'self' data:; " +
+            $"connect-src 'self'; " +
+            $"frame-src 'self'; " +
+            $"frame-ancestors 'self'; " +
+            $"form-action 'self'; " +
+            $"object-src 'none'; " +
+            $"base-uri 'self';"
+        );
+
+        await _next(context);
+    }
+}
+```
+
+### 2. Pass nonce to your Angular app:
+
+In your `index.html`:
+```html
+<script nonce="<%= nonce %>" src="runtime.js"></script>
+<script nonce="<%= nonce %>" src="polyfills.js"></script>
+<script nonce="<%= nonce %>" src="main.js"></script>
+```
+
+## Customizing for External Resources
+
+If your Angular app uses external resources, add them:
+
+```csharp
+"script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.example.com; " +
+"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+"font-src 'self' data: https://fonts.gstatic.com; " +
+"connect-src 'self' https://api.yourdomain.com; " +
+"img-src 'self' data: https: https://images.example.com; "
+```
+
+## Testing Your CSP
+
+1. Deploy the changes
+2. Open browser DevTools (F12)
+3. Check the Console for CSP violations
+4. Adjust the policy based on violations
+
+Would you like help customizing this further for specific CDNs or external services you're using?
