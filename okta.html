@@ -105,3 +105,52 @@
     </script>
 </body>
 </html>
+
+
+User enters: https://demo.benefitsnow.ca
+    ↓
+Redirects to: https://benefitsnowlogonuat.cooperators.ca/login/bnpslogin
+    ↓
+User enters: abc@seb-groupinc.com / 132@2026
+    ↓
+OKTA authenticates at Benefits Now Portal
+    ↓
+Redirects to: https://demo.benefitsnow.ca/callback
+    ↓ [PROBLEM: Full Angular loads - 3-4 seconds]
+OktaThirdpartyComponent loads
+    ↓
+okta.getTokenWithoutPrompt() - gets access token
+    ↓
+Extract userId from token claims
+    ↓
+Call ImpersonationSSOService to register user in ABP session
+    ↓
+Hard redirect to: /app/member/dashboard
+    ↓ [PROBLEM: Full Angular loads AGAIN - 3-4 seconds]
+Dashboard shows
+
+
+
+
+
+
+
+User enters: https://demo.benefitsnow.ca
+    ↓
+Redirects to: https://benefitsnowlogonuat.cooperators.ca/login/bnpslogin
+    ↓
+User enters: abc@seb-groupinc.com / 132@2026
+    ↓
+OKTA authenticates at Benefits Now Portal
+    ↓
+Redirects to: https://demo.benefitsnow.ca/assets/callback.html
+    ↓ [SOLUTION: Static HTML - 0.5 seconds]
+Parse tokens with Okta SDK
+    ↓
+Extract userId from token claims
+    ↓
+Call /api/TokenAuth/ImpersonateSSO API
+    ↓
+Hard redirect to: /app/member/dashboard
+    ↓ [Angular loads ONCE - 3-4 seconds]
+Dashboard shows
