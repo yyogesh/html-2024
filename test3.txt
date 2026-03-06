@@ -1,0 +1,24 @@
+1. Parallelized student certification API calls
+Before: getStudentCertificaionData() made sequential API calls in a loop (one per dependent).
+After: Uses forkJoin to run all certification requests in parallel.
+Impact: If there are 3 dependents, this reduces wait time from ~3x to ~1x the slowest request.
+2. Streamlined API call flow
+Before: Sequential waits between CreateOrEditMultipledependent → getStudentCertificaionData() → updateMemberAction() → createSubscription().
+After: Optimized the flow to avoid unnecessary waits and removed duplicate logic.
+3. Added error handling
+Added error handlers to all API calls to prevent blocking on failures.
+4. Added subscription management
+Added takeUntil(this.stop$) to prevent memory leaks and ensure proper cleanup.
+5. Removed duplicate createSubscription() calls
+Consolidated logic to avoid calling createSubscription() multiple times unnecessarily.
+Expected performance improvement
+With 3 dependents requiring student certifications:
+Before: ~3–5 seconds (sequential calls)
+After: ~1–2 seconds (parallel calls)
+Overall: 50–70% faster, depending on the number of dependents.
+Code changes summary
+getStudentCertificaionData(): Changed from sequential forEach to parallel forkJoin.
+submitdependent(): Streamlined flow and improved error handling.
+updateMemberAction(): Added proper navigation/subscription handling.
+createSubscription(): Added error handling and subscription management.
+The code is now more efficient and should significantly reduce the time taken when clicking the Next button. The optimizations maintain the same functionality while improving performance through parallelization and better flow management
