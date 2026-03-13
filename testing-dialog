@@ -1,0 +1,67 @@
+import { Component, Inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MatButtonModule } from '@angular/material/button';
+import { TemplateItem } from './template.model';
+
+export interface DeleteDialogData {
+  template: TemplateItem;
+}
+
+@Component({
+  selector: 'app-delete-template-dialog',
+  standalone: true,
+  imports: [CommonModule, MatDialogModule, MatButtonModule],
+  template: `
+    <h2 mat-dialog-title>Delete template</h2>
+
+    <mat-dialog-content>
+      <p>
+        Permanently delete your template <strong>"{{ data.template.name }}"</strong>.
+        You can't undo this.
+      </p>
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end">
+      <button mat-button (click)="onCancel()">Cancel</button>
+      <button mat-flat-button color="primary" (click)="onConfirm()">Delete</button>
+    </mat-dialog-actions>
+  `,
+  styles: [`
+    h2[mat-dialog-title] {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1a1a2e;
+    }
+
+    mat-dialog-content p {
+      font-size: 14px;
+      color: #444;
+      line-height: 1.5;
+    }
+
+    mat-dialog-actions {
+      padding: 16px 24px;
+      gap: 8px;
+    }
+
+    button[mat-flat-button] {
+      background-color: #1a3a6e !important;
+      color: white !important;
+    }
+  `]
+})
+export class DeleteTemplateDialogComponent {
+  constructor(
+    public dialogRef: MatDialogRef<DeleteTemplateDialogComponent>,
+    @Inject(MAT_DIALOG_DATA) public data: DeleteDialogData
+  ) {}
+
+  onConfirm(): void {
+    this.dialogRef.close(true);
+  }
+
+  onCancel(): void {
+    this.dialogRef.close(false);
+  }
+}
