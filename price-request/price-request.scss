@@ -1,0 +1,348 @@
+// price-request.component.scss
+// Matches screenshot: plain white background, no card borders,
+// flat meta grid, simple price rows separated by hairlines,
+// standard Material outline fields, blue CTA button.
+
+// ── Tokens ────────────────────────────────────────────────────────────────────
+$white:           #ffffff;
+$page-bg:         #ffffff;
+$text-primary:    #212121;
+$text-secondary:  #555555;
+$text-muted:      #777777;
+$text-red:        #c0392b;      // expiration date
+$border-light:    #e0e0e0;
+$section-border:  #cccccc;
+$label-color:     #444444;
+$link-color:      #1155cc;
+$cta-bg:          #1565c0;
+$cta-hover:       #0d47a1;
+$status-bg:       #fff3e0;
+$status-color:    #e65100;
+$status-border:   #ffb74d;
+$font-stack:      'Roboto', 'Helvetica Neue', Arial, sans-serif;
+$font-size-base:  13px;
+
+// ── Reset / base ──────────────────────────────────────────────────────────────
+*, *::before, *::after { box-sizing: border-box; }
+
+.pr-page {
+  font-family:     $font-stack;
+  font-size:       $font-size-base;
+  background:      $page-bg;
+  color:           $text-primary;
+  min-height:      100vh;
+  max-width:       900px;
+  margin:          0 auto;
+  padding:         0;
+}
+
+// ── Header ────────────────────────────────────────────────────────────────────
+.pr-header {
+  display:         flex;
+  align-items:     center;
+  gap:             12px;
+  padding:         12px 16px;
+  border-bottom:   1px solid $border-light;
+}
+
+.pr-back-btn {
+  background:      none;
+  border:          none;
+  cursor:          pointer;
+  display:         flex;
+  align-items:     center;
+  gap:             6px;
+  padding:         0;
+  font-family:     $font-stack;
+  color:           $text-primary;
+}
+
+.pr-back-arrow {
+  font-size:       16px;
+  color:           $text-secondary;
+}
+
+.pr-header-title {
+  font-size:       15px;
+  font-weight:     500;
+  color:           $text-primary;
+}
+
+.pr-status-chip {
+  font-size:       11px;
+  font-weight:     500;
+  padding:         3px 10px;
+  border-radius:   12px;
+  background:      $status-bg;
+  color:           $status-color;
+  border:          1px solid $status-border;
+  white-space:     nowrap;
+}
+
+// ── Route ─────────────────────────────────────────────────────────────────────
+.pr-route {
+  display:         flex;
+  align-items:     baseline;
+  gap:             6px;
+  padding:         10px 16px 8px;
+  border-bottom:   1px solid $border-light;
+}
+
+.pr-route-city {
+  font-size:       13px;
+  font-weight:     400;
+  color:           $text-primary;
+}
+
+.pr-route-code {
+  font-size:       12px;
+  color:           $link-color;
+  font-weight:     400;
+}
+
+.pr-route-arrow {
+  font-size:       13px;
+  color:           $text-secondary;
+  margin:          0 2px;
+}
+
+// ── Meta — flat, no borders ───────────────────────────────────────────────────
+.pr-meta {
+  display:         grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap:             0;
+  padding:         8px 16px 12px;
+  border-bottom:   1px solid $border-light;
+
+  @media (max-width: 600px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.pr-meta-item {
+  padding:         6px 8px 6px 0;
+}
+
+.pr-meta-label {
+  font-size:       11px;
+  color:           $text-muted;
+  margin-bottom:   2px;
+  font-weight:     400;
+}
+
+.pr-meta-value {
+  font-size:       12px;
+  color:           $text-primary;
+  font-weight:     400;
+  line-height:     1.4;
+
+  &--red {
+    color:         $text-red;
+  }
+}
+
+// ── Section container ─────────────────────────────────────────────────────────
+.pr-section {
+  padding:         14px 16px;
+  border-bottom:   1px solid $border-light;
+
+  &--offer {
+    padding-bottom: 20px;
+  }
+}
+
+.pr-section-heading {
+  font-size:       13px;
+  font-weight:     500;
+  color:           $text-primary;
+  margin-bottom:   6px;
+}
+
+.pr-global-note {
+  font-size:       11px;
+  color:           $text-muted;
+  margin-bottom:   12px;
+  line-height:     1.5;
+}
+
+// ── Price rows ────────────────────────────────────────────────────────────────
+.pr-price-row {
+  display:         flex;
+  align-items:     flex-start;
+  gap:             16px;
+  padding:         10px 0;
+  border-top:      1px solid $border-light;
+
+  &:first-of-type {
+    border-top:    none;
+  }
+}
+
+.pr-price-name-col {
+  min-width:       160px;
+  flex-shrink:     0;
+}
+
+.pr-car-name {
+  font-size:       13px;
+  font-weight:     500;
+  color:           $text-primary;
+}
+
+.pr-car-subtype {
+  font-size:       11px;
+  color:           $text-muted;
+  margin-top:      2px;
+}
+
+.pr-price-meta-cols {
+  display:         flex;
+  flex:            1;
+  gap:             20px;
+  flex-wrap:       wrap;
+}
+
+.pr-meta-col-item {
+  display:         flex;
+  flex-direction:  column;
+  gap:             2px;
+  min-width:       80px;
+}
+
+.pr-col-label {
+  font-size:       10px;
+  color:           $text-muted;
+  white-space:     nowrap;
+}
+
+.pr-col-value {
+  font-size:       12px;
+  color:           $text-primary;
+  white-space:     nowrap;
+}
+
+.pr-miles {
+  font-size:       11px;
+  color:           $text-muted;
+}
+
+.pr-price-amount-col {
+  text-align:      right;
+  flex-shrink:     0;
+  min-width:       90px;
+}
+
+.pr-price-amount {
+  font-size:       15px;
+  font-weight:     500;
+  color:           $text-primary;
+}
+
+.pr-price-unit {
+  font-size:       11px;
+  color:           $text-muted;
+}
+
+.pr-price-excl {
+  font-size:       10px;
+  color:           $text-muted;
+  font-style:      italic;
+}
+
+.pr-add-condition {
+  font-size:       11px;
+  color:           $text-muted;
+  padding:         4px 0 8px 0;
+  line-height:     1.5;
+  font-style:      italic;
+}
+
+.pr-footnote {
+  font-size:       11px;
+  color:           $text-muted;
+  margin-top:      12px;
+  line-height:     1.6;
+}
+
+.pr-link {
+  color:           $link-color;
+  text-decoration: underline;
+  cursor:          pointer;
+}
+
+// ── Offer Response form ───────────────────────────────────────────────────────
+.pr-offer-row {
+  display:         flex;
+  align-items:     flex-start;
+  gap:             10px;
+  margin-top:      10px;
+  flex-wrap:       wrap;
+}
+
+.pr-select-field {
+  width:           180px;
+  flex-shrink:     0;
+
+  // reduce Material field height to match screenshot
+  .mat-mdc-text-field-wrapper {
+    padding-top:   0;
+  }
+}
+
+.pr-comment-field {
+  flex:            1;
+  min-width:       220px;
+}
+
+// Normalise Material outline color to match page
+.pr-select-field,
+.pr-comment-field {
+  font-size:       13px;
+
+  .mat-mdc-form-field-infix {
+    min-height:    40px;
+    padding-top:   10px;
+    padding-bottom: 10px;
+  }
+}
+
+.pr-accept-btn {
+  height:          40px !important;
+  min-width:       150px;
+  background:      $cta-bg !important;
+  color:           #fff !important;
+  font-size:       12px !important;
+  font-weight:     500 !important;
+  letter-spacing:  .3px;
+  border-radius:   4px !important;
+  flex-shrink:     0;
+  align-self:      flex-start;
+  margin-top:      4px;
+  white-space:     nowrap;
+
+  &:hover:not(:disabled) {
+    background:    $cta-hover !important;
+  }
+
+  &[disabled] {
+    opacity:       .6;
+  }
+}
+
+// ── Confidentiality ───────────────────────────────────────────────────────────
+.pr-confidentiality {
+  padding:         12px 16px 20px;
+}
+
+.pr-conf-title {
+  font-size:       11px;
+  font-weight:     500;
+  color:           $text-secondary;
+  margin-bottom:   4px;
+}
+
+.pr-conf-body {
+  font-size:       10px;
+  color:           $text-muted;
+  line-height:     1.6;
+}

@@ -1,0 +1,165 @@
+<!-- price-request.component.html -->
+<div class="pr-page">
+
+  <!-- ── Header ── -->
+  <div class="pr-header">
+    <button class="pr-back-btn" (click)="goBack()">
+      <span class="pr-back-arrow">&#8592;</span>
+      <span class="pr-header-title">Price Request #{{ requestId }}</span>
+    </button>
+    <span class="pr-status-chip">{{ status }}</span>
+  </div>
+
+  <!-- ── Route ── -->
+  <div class="pr-route">
+    <span class="pr-route-city">{{ origin.city }}</span>
+    <span class="pr-route-code">({{ origin.code }})</span>
+    <span class="pr-route-arrow">&#8594;</span>
+    <span class="pr-route-city">{{ destination.city }}</span>
+    <span class="pr-route-code">({{ destination.code }})</span>
+  </div>
+
+  <!-- ── Meta info — flat 3-col, no borders ── -->
+  <div class="pr-meta">
+    <div class="pr-meta-item">
+      <div class="pr-meta-label">Date Requested</div>
+      <div class="pr-meta-value">{{ requestInfo.dateRequested }}</div>
+    </div>
+    <div class="pr-meta-item">
+      <div class="pr-meta-label">Expiration Date</div>
+      <div class="pr-meta-value pr-meta-value--red">{{ requestInfo.expirationDate }}</div>
+    </div>
+    <div class="pr-meta-item">
+      <div class="pr-meta-label">Potential Volume</div>
+      <div class="pr-meta-value">{{ requestInfo.potentialVolume }}</div>
+    </div>
+    <div class="pr-meta-item">
+      <div class="pr-meta-label">Ship From:</div>
+      <div class="pr-meta-value">{{ requestInfo.shipFrom }}</div>
+    </div>
+    <div class="pr-meta-item">
+      <div class="pr-meta-label">Ship To:</div>
+      <div class="pr-meta-value">{{ requestInfo.shipTo }}</div>
+    </div>
+    <div class="pr-meta-item">
+      <div class="pr-meta-label">Commodity (STCC)</div>
+      <div class="pr-meta-value">{{ requestInfo.commoditySTCC }}</div>
+    </div>
+    <div class="pr-meta-item">
+      <div class="pr-meta-label">Pick up Party</div>
+      <div class="pr-meta-value">{{ requestInfo.pickUpParty }}</div>
+    </div>
+    <div class="pr-meta-item">
+      <div class="pr-meta-label">In Care of Party</div>
+      <div class="pr-meta-value">{{ requestInfo.inCareOfParty }}</div>
+    </div>
+  </div>
+
+  <!-- ── Price Details ── -->
+  <div class="pr-section">
+    <div class="pr-section-heading">Price Details</div>
+    <div class="pr-global-note">{{ globalCondition }}</div>
+
+    <ng-container *ngFor="let item of priceDetails">
+
+      <div class="pr-price-row">
+        <!-- Left: name -->
+        <div class="pr-price-name-col">
+          <div class="pr-car-name">{{ item.name }}</div>
+          <div class="pr-car-subtype">{{ item.subtype }}</div>
+        </div>
+
+        <!-- Middle: meta cols -->
+        <div class="pr-price-meta-cols">
+          <div class="pr-meta-col-item">
+            <div class="pr-col-label">Route</div>
+            <div class="pr-col-value">{{ item.route }}</div>
+          </div>
+          <div class="pr-meta-col-item">
+            <div class="pr-col-label">Ownership</div>
+            <div class="pr-col-value">{{ item.ownership }}</div>
+          </div>
+          <div class="pr-meta-col-item" *ngIf="item.minWeight">
+            <div class="pr-col-label">Min. Weight</div>
+            <div class="pr-col-value">{{ item.minWeight }}</div>
+          </div>
+          <div class="pr-meta-col-item">
+            <div class="pr-col-label">Current Fuel Surcharge*</div>
+            <div class="pr-col-value">
+              {{ item.currentFuelSurcharge }}
+              <span class="pr-miles">({{ item.fuelSurchargeMiles }})</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: price -->
+        <div class="pr-price-amount-col">
+          <div class="pr-price-amount">{{ item.price }}</div>
+          <div class="pr-price-unit">{{ item.unit }}</div>
+          <div class="pr-price-excl">{{ item.includesNote }}</div>
+        </div>
+      </div>
+
+      <div class="pr-add-condition" *ngIf="item.additionalCondition">
+        {{ item.additionalCondition }}
+      </div>
+
+    </ng-container>
+
+    <div class="pr-footnote">
+      * Fuel surcharge is based on currently available information and is subject to change for future ship dates.
+      Please review <a class="pr-link" href="#">Fuel surcharge programs</a> to see all details.
+    </div>
+  </div>
+
+  <!-- ── Offer Response ── -->
+  <div class="pr-section pr-section--offer">
+    <div class="pr-section-heading">Offer Response:</div>
+
+    <form [formGroup]="offerForm" (ngSubmit)="onSubmit()">
+      <div class="pr-offer-row">
+
+        <mat-form-field appearance="outline" class="pr-select-field">
+          <mat-select formControlName="response" placeholder="Select a response">
+            <mat-option *ngFor="let opt of responseOptions" [value]="opt.value">
+              {{ opt.label }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="pr-comment-field">
+          <input
+            matInput
+            formControlName="comments"
+            placeholder="Enter comments regarding your response selection"
+            maxlength="70"
+          />
+          <mat-hint align="end">{{ commentsLength }}/70</mat-hint>
+        </mat-form-field>
+
+        <button
+          mat-flat-button
+          type="submit"
+          class="pr-accept-btn"
+          [disabled]="offerForm.invalid"
+        >
+          ACCEPT / REJECT NOW
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ── Confidentiality ── -->
+  <div class="pr-confidentiality">
+    <div class="pr-conf-title">Confidentiality Disclaimer</div>
+    <div class="pr-conf-body">
+      Private Confidential Price Offer: This communication is intended to be a confidential price offer
+      for exclusive use by the person at the organization to which it is addressed. If acceptable, UP will
+      prepare and furnish the appropriate price document, including all the applicable terms and conditions.
+      The price offer is private confidential and any portion of the negotiation can be considered a
+      rejection of its terms. This message should not be disseminated to any person or entity not directly
+      associated with the negotiation.
+    </div>
+  </div>
+
+</div>
