@@ -1,0 +1,247 @@
+<div class="price-requests-container">
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-left">
+      <button mat-icon-button class="back-button" (click)="goBack()">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      <h1 class="page-title">My Price Requests</h1>
+    </div>
+    <button mat-stroked-button class="new-request-btn" (click)="newPriceRequest()">
+      NEW PRICE REQUEST
+    </button>
+  </header>
+
+  <!-- Open Section -->
+  <section class="open-section">
+    <div class="section-header">
+      <span class="section-label">Open</span>
+      <div class="filter-tabs">
+        <button 
+          class="filter-tab" 
+          [class.active]="activeFilter === 'all'"
+          (click)="setFilter('all')">
+          All
+        </button>
+        <button 
+          class="filter-tab" 
+          [class.active]="activeFilter === 'pending_customer'"
+          (click)="setFilter('pending_customer')">
+          Pending Customer Response
+        </button>
+        <button 
+          class="filter-tab" 
+          [class.active]="activeFilter === 'pending_up'"
+          (click)="setFilter('pending_up')">
+          Pending UP
+        </button>
+        <button 
+          class="filter-tab" 
+          [class.active]="activeFilter === 'pending_other_railroad'"
+          (click)="setFilter('pending_other_railroad')">
+          Pending Other Railroad
+        </button>
+      </div>
+    </div>
+
+    <!-- Warning Banner -->
+    <div class="warning-banner">
+      <span>Price offers not accepted before expiration will not be honored</span>
+    </div>
+
+    <!-- Open Requests Table -->
+    <div class="table-container">
+      <table mat-table [dataSource]="filteredOpenRequests" class="requests-table">
+        <!-- ID Column -->
+        <ng-container matColumnDef="id">
+          <th mat-header-cell *matHeaderCellDef>ID</th>
+          <td mat-cell *matCellDef="let request">{{ request.id }}</td>
+        </ng-container>
+
+        <!-- Status Column -->
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let request">
+            <span class="status-badge" [ngClass]="request.status">
+              {{ getStatusLabel(request.status) }}
+            </span>
+          </td>
+        </ng-container>
+
+        <!-- Origin - Destination Column -->
+        <ng-container matColumnDef="originDestination">
+          <th mat-header-cell *matHeaderCellDef>Origin - Destination</th>
+          <td mat-cell *matCellDef="let request">
+            <span class="origin">{{ request.origin }}</span>
+            <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+            <span class="destination">{{ request.destination }}</span>
+          </td>
+        </ng-container>
+
+        <!-- Commodity Column -->
+        <ng-container matColumnDef="commodity">
+          <th mat-header-cell *matHeaderCellDef>Commodity</th>
+          <td mat-cell *matCellDef="let request">{{ request.commodity }}</td>
+        </ng-container>
+
+        <!-- Ship from Column -->
+        <ng-container matColumnDef="shipFrom">
+          <th mat-header-cell *matHeaderCellDef>Ship from</th>
+          <td mat-cell *matCellDef="let request">{{ request.shipFrom }}</td>
+        </ng-container>
+
+        <!-- Ship to Column -->
+        <ng-container matColumnDef="shipTo">
+          <th mat-header-cell *matHeaderCellDef>Ship to</th>
+          <td mat-cell *matCellDef="let request">{{ request.shipTo }}</td>
+        </ng-container>
+
+        <!-- Date Requested Column -->
+        <ng-container matColumnDef="dateRequested">
+          <th mat-header-cell *matHeaderCellDef>Date Requested</th>
+          <td mat-cell *matCellDef="let request">{{ request.dateRequested }}</td>
+        </ng-container>
+
+        <!-- Expiration Date Column -->
+        <ng-container matColumnDef="expirationDate">
+          <th mat-header-cell *matHeaderCellDef>Expiration Date</th>
+          <td mat-cell *matCellDef="let request">
+            <span [class.expiration-warning]="request.expirationWarning">
+              {{ request.expirationDate }}
+            </span>
+          </td>
+        </ng-container>
+
+        <!-- Price Column -->
+        <ng-container matColumnDef="price">
+          <th mat-header-cell *matHeaderCellDef>Price</th>
+          <td mat-cell *matCellDef="let request">
+            <div class="price-cell" *ngIf="request.price">
+              <span class="price-value">{{ request.price }}</span>
+              <span class="price-note">{{ request.priceNote }}</span>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Action Column -->
+        <ng-container matColumnDef="action">
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let request">
+            <button class="view-link" (click)="viewRequest(request.id)">VIEW</button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="openDisplayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: openDisplayedColumns;"></tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- Completed Section -->
+  <section class="completed-section">
+    <h2 class="section-title">Completed</h2>
+    
+    <div class="date-filter-row">
+      <span class="filter-description">
+        Showing requests from the last 6 months.<br>
+        Set a custom range below to see others.
+      </span>
+      
+      <div class="date-inputs">
+        <mat-form-field appearance="outline" class="date-field">
+          <mat-label>From</mat-label>
+          <input matInput [matDatepicker]="fromPicker" [(ngModel)]="fromDate" placeholder="MM-DD-YYYY">
+          <mat-datepicker-toggle matIconSuffix [for]="fromPicker"></mat-datepicker-toggle>
+          <mat-datepicker #fromPicker></mat-datepicker>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="date-field">
+          <mat-label>To</mat-label>
+          <input matInput [matDatepicker]="toPicker" [(ngModel)]="toDate" placeholder="MM-DD-YYYY">
+          <mat-datepicker-toggle matIconSuffix [for]="toPicker"></mat-datepicker-toggle>
+          <mat-datepicker #toPicker></mat-datepicker>
+        </mat-form-field>
+
+        <button mat-flat-button class="apply-btn" (click)="applyDateFilter()">APPLY</button>
+      </div>
+    </div>
+
+    <!-- Completed Requests Table -->
+    <div class="table-container">
+      <table mat-table [dataSource]="completedRequests" class="requests-table">
+        <!-- ID Column -->
+        <ng-container matColumnDef="id">
+          <th mat-header-cell *matHeaderCellDef>ID</th>
+          <td mat-cell *matCellDef="let request">{{ request.id }}</td>
+        </ng-container>
+
+        <!-- Status Column -->
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let request">
+            <span class="status-badge" [ngClass]="request.status">
+              {{ getStatusLabel(request.status) }}
+            </span>
+          </td>
+        </ng-container>
+
+        <!-- Origin - Destination Column -->
+        <ng-container matColumnDef="originDestination">
+          <th mat-header-cell *matHeaderCellDef>Origin - Destination</th>
+          <td mat-cell *matCellDef="let request">
+            <span class="origin">{{ request.origin }}</span>
+            <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+            <span class="destination">{{ request.destination }}</span>
+          </td>
+        </ng-container>
+
+        <!-- Commodity Column -->
+        <ng-container matColumnDef="commodity">
+          <th mat-header-cell *matHeaderCellDef>Commodity</th>
+          <td mat-cell *matCellDef="let request">{{ request.commodity }}</td>
+        </ng-container>
+
+        <!-- Ship from Column -->
+        <ng-container matColumnDef="shipFrom">
+          <th mat-header-cell *matHeaderCellDef>Ship from</th>
+          <td mat-cell *matCellDef="let request">{{ request.shipFrom }}</td>
+        </ng-container>
+
+        <!-- Ship to Column -->
+        <ng-container matColumnDef="shipTo">
+          <th mat-header-cell *matHeaderCellDef>Ship to</th>
+          <td mat-cell *matCellDef="let request">{{ request.shipTo }}</td>
+        </ng-container>
+
+        <!-- Date Requested Column -->
+        <ng-container matColumnDef="dateRequested">
+          <th mat-header-cell *matHeaderCellDef>Date Requested</th>
+          <td mat-cell *matCellDef="let request">{{ request.dateRequested }}</td>
+        </ng-container>
+
+        <!-- Response Date Column -->
+        <ng-container matColumnDef="responseDate">
+          <th mat-header-cell *matHeaderCellDef>Response date</th>
+          <td mat-cell *matCellDef="let request">{{ request.responseDate }}</td>
+        </ng-container>
+
+        <!-- Publish Doc Column -->
+        <ng-container matColumnDef="publishDoc">
+          <th mat-header-cell *matHeaderCellDef>Publish doc</th>
+          <td mat-cell *matCellDef="let request">{{ request.publishDoc }}</td>
+        </ng-container>
+
+        <!-- Action Column -->
+        <ng-container matColumnDef="action">
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let request">
+            <button class="view-link" (click)="viewRequest(request.id)">VIEW</button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="completedDisplayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: completedDisplayedColumns;"></tr>
+      </table>
+    </div>
+  </section>
+</div>
